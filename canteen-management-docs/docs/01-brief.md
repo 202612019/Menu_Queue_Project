@@ -48,7 +48,7 @@ This project aims to centralize menu information and manage online and walk-in o
 - Receive payment at the counter during collection and confirm Collected after handing over the order.
 
 ### Kitchen staff
-- Prepare the oldest Accepted order by original queue order, with at most one order Preparing at a time.
+- Prepare the oldest Accepted order by `accepted_at ASC, queue_sequence ASC`, with at most one order Preparing at a time.
 - Mark an order as Preparing, then Ready.
 - View token, items, quantities, and student notes if that optional feature is approved.
 - Avoid changing menu prices or staff permissions.
@@ -69,7 +69,7 @@ A user may have more than one staff capability only if an authorized administrat
 2. **Student cart:** add/remove items, change quantities, calculate subtotal and total.
 3. **Online ordering:** submit an order and receive a unique token.
 4. **Walk-in ordering:** staff can enter a counter order using a customer name or counter reference. The order starts as Placed and requires explicit acceptance.
-5. **Common queue:** online and walk-in orders share one chronological queue and one daily date-prefixed token sequence.
+5. **Common queue:** online and walk-in orders share one preparation queue ordered by acceptance time and one daily date-prefixed token sequence.
 6. **Order tracking:** students can view token, current status, and approximate queue-based waiting time with a notice that it can change.
 7. **Staff and kitchen dashboards:** staff manage incoming orders; kitchen updates preparation status.
 8. **Admin management:** admin manages menu items, categories, availability, Open/Closed status, staff accounts and roles, order history, and basic statistics. Sales count Collected orders only.
@@ -91,9 +91,9 @@ For the MVP, payment is handled offline at collection (cash or the canteen's exi
 
 - There is one college canteen and one shared queue.
 - Both online and walk-in orders are recorded in the same database.
-- The shared queue is first-in, first-out (FIFO) by trusted successful creation time, with a stable database tie-breaker. Rejected, Cancelled, and Collected orders leave the active queue.
+- The shared preparation queue is first-in, first-out (FIFO) among Accepted orders by `accepted_at ASC`, with `queue_sequence ASC` as a stable tie-breaker. Rejected, Cancelled, and Collected orders leave active order lists.
 - Both order sources initially have Placed status and require explicit staff/admin acceptance.
-- Kitchen staff prepare the oldest Accepted order by original creation order. At most one order may be Preparing. An earlier Placed order is awaiting acceptance and does not block Accepted orders. Once an order becomes Ready, the kitchen can start the next eligible order while collection is pending.
+- Kitchen staff prepare the order accepted earliest. At most one order may be Preparing. Placed orders await staff acceptance and have no preparation queue position. Once an order becomes Ready, the kitchen can start the next eligible Accepted order while collection is pending.
 - Tokens use a daily sequence with a mandatory date prefix, for example `20261118-041`. The sequence restarts on the next canteen business day. The full token is globally unique and is never reassigned. Both sources allocate tokens through the same safe database transaction.
 - The business-day timezone and cutoff remain to be confirmed in `03-flows-rules.md`, section 12.
 - An order is not considered ready until kitchen staff marks it Ready.
@@ -111,9 +111,9 @@ Use a modern, professional college-canteen style: clean white or very light neut
 
 The project is successful when:
 - A student can browse available food, submit an order, and see a token.
-- Staff can add a walk-in order and it appears in the same queue.
+- Staff can add a walk-in order to incoming orders and explicitly accept it into the shared preparation queue.
 - Both order sources start as Placed and receive unique date-prefixed daily tokens under concurrent submissions.
-- Only the oldest Accepted order can begin preparation, and concurrent kitchen actions cannot create two Preparing orders.
+- Only the oldest Accepted order by `accepted_at ASC, queue_sequence ASC` can begin preparation, and concurrent kitchen actions cannot create two Preparing orders.
 - Kitchen status changes are visible on the staff and student views without requiring a manual page refresh (real-time updates where supported).
 - Unavailable items cannot be ordered.
 - Role permissions prevent students from opening staff/admin actions.

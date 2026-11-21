@@ -9,6 +9,7 @@ Build a responsive college canteen web application. Students browse the menu, pl
 - `docs/01-brief.md` — problem, users, MVP features, scope boundaries, assumptions.
 - `docs/02-screens.md` — routes, screen layouts, interactions, responsive behaviour, empty/error states.
 - `docs/03-flows-rules.md` — order flows, statuses, queue/token rules, access rules, and test checklist.
+- `docs/04-authentication.md` — approved basic authentication implementation, security boundaries, and verification results.
 
 These documents are the product requirements. If implementation appears to conflict with them, explain the conflict and ask before changing the requirement.
 
@@ -24,6 +25,8 @@ These documents are the product requirements. If implementation appears to confl
 Before adding packages or services, explain why they are needed. Prefer the simplest maintainable solution.
 
 Architecture approval and the approved product decisions authorize the current documentation update. Application development requires the user's next explicit approval after reviewing these updated documents. Remaining decisions are tracked in `docs/03-flows-rules.md`, section 12.
+
+Subsequent phase approvals authorize the existing homepage, Supabase connection test, and basic authentication implementation approved on 20 November 2026. Authentication uses JSX, the existing Student-profile trigger, and existing RLS. Preserve the stable App/cart during navigation. Do not deploy or change hosted Supabase settings without the user's approval. This does not authorize order placement or staff-provisioning interfaces.
 
 ## Design rules
 
@@ -41,8 +44,8 @@ Architecture approval and the approved product decisions authorize the current d
 ## Core product rules
 
 - Online and walk-in orders must use the same order table/queue and token-generation mechanism.
-- Queue order is FIFO by trusted order creation time, with a stable tie-breaker.
-- Kitchen staff start the oldest Accepted order by original queue order. At most one order may be Preparing at a time. An earlier Placed order is awaiting acceptance and does not block an Accepted order. Ready orders can await collection while the next order is prepared.
+- Preparation queue order is FIFO among Accepted orders by `accepted_at ASC, queue_sequence ASC`.
+- Kitchen staff start the order with the earliest acceptance timestamp, using `queue_sequence` to break ties. At most one order may be Preparing at a time. Placed orders await acceptance and have no preparation queue position. Ready orders can await collection while the next order is prepared.
 - Tokens use a daily sequence and a required date prefix, for example `20261118-041`. Allocate them in a safe database transaction shared by both order sources. The numeric sequence restarts for each business day. The full date-prefixed token remains unique and is never reassigned, including after collection, cancellation, or rejection.
 - Both online and walk-in orders start as Placed and require explicit staff/admin acceptance.
 - Main status flow: Placed → Accepted → Preparing → Ready → Collected.

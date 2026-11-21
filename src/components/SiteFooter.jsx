@@ -1,4 +1,5 @@
 import { homeContent } from '../content/home'
+import { Link } from 'react-router'
 
 export function SiteFooter() {
   return (
@@ -12,7 +13,7 @@ export function SiteFooter() {
           <h2 className="font-semibold">{homeContent.footerNavigation}</h2>
           <ul className="mt-3 space-y-1 text-sm text-white/80">
             {homeContent.navigation.map((link) => (
-              <li key={link.href}><a className="inline-flex min-h-9 items-center rounded hover:text-white hover:underline" href={link.href}>{link.label}</a></li>
+              <li key={link.href}><Link className="inline-flex min-h-9 items-center rounded hover:text-white hover:underline" to={`/${link.href}`}>{link.label}</Link></li>
             ))}
           </ul>
         </nav>

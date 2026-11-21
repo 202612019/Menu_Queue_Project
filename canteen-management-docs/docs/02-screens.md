@@ -20,7 +20,7 @@ This document defines the MVP screens, their routes, users, contents, interactio
 - Registration requires student name, email, and password. Every newly registered account receives only the Student role by default.
 - Students must sign in to access student-protected routes. Public menu browsing remains available.
 - Only an authorized administrator can create staff accounts and assign elevated roles. A registration form must never offer a staff/admin role selector.
-- Credentials are handled by Supabase Auth. Do not show stored passwords or privileged credentials. Email verification, recovery, and staff onboarding details remain open in `03-flows-rules.md`, section 12.
+- Credentials are handled by Supabase Auth. Do not show stored passwords or privileged credentials. Basic email confirmation and password recovery are implemented as described in `04-authentication.md`. SMTP verification and staff onboarding remain open in `03-flows-rules.md`, section 12.
 
 ## Screen 1: Home (`/`)
 
@@ -102,7 +102,7 @@ This document defines the MVP screens, their routes, users, contents, interactio
 - Collection method text: “Collect at the canteen counter.”
 - Payment note: “Pay at the counter when collecting.” No online payment gateway in the MVP.
 - **Place Order** button.
-- Clear notice that submitting creates a date-prefixed daily token, starts the order as Placed, and adds it to the shared queue for staff acceptance.
+- Clear notice that submitting creates a date-prefixed daily token and starts the order as Placed. Staff acceptance adds it to the shared preparation queue.
 
 ### Actions and validation
 - Quantity must be at least 1.
@@ -137,7 +137,7 @@ This document defines the MVP screens, their routes, users, contents, interactio
 - Order status and a simple progress indicator.
 - Ordered items, quantities, and total.
 - Order creation time.
-- Queue position for active orders, when it can be calculated.
+- Preparation queue position for Accepted orders, calculated by `accepted_at ASC, queue_sequence ASC`. Placed orders show that they are awaiting acceptance.
 - Approximate queue-based waiting time using single-order preparation capacity, with a note: “Estimated wait — may change.” Ready orders show Ready for collection. Timing baseline details remain open in `03-flows-rules.md`, section 12.
 - Collection instruction: collect at the canteen counter when Ready.
 - Cancel action only when allowed by the rules in `03-flows-rules.md`.
@@ -165,7 +165,7 @@ This document defines the MVP screens, their routes, users, contents, interactio
 1. Header with staff identity and sign-out.
 2. Summary counts: Placed, Accepted, Preparing, Ready.
 3. Tabs/filters: All active, Online, Walk-in, History. History includes Collected, Cancelled, and Rejected orders.
-4. Queue table/list sorted by creation time, oldest first.
+4. Preparation queue table/list of Accepted orders sorted by `accepted_at ASC, queue_sequence ASC`. Incoming Placed orders are shown as awaiting staff review.
 5. **Add Walk-in Order** action.
 
 ### Order row/card
@@ -182,7 +182,7 @@ This document defines the MVP screens, their routes, users, contents, interactio
 - Optional contact only if needed by the canteen.
 - Select available menu items and quantities.
 - Show calculated total.
-- **Create Walk-in Order** creates an order with source `walk_in` and status Placed, allocates a date-prefixed token from the shared daily sequence, and places it in the common queue. Backend validation and safe retry rules also apply to walk-in creation.
+- **Create Walk-in Order** creates an order with source `walk_in` and status Placed, allocates a date-prefixed token from the shared daily sequence, and adds it to incoming orders for explicit acceptance. Backend validation and safe retry rules also apply to walk-in creation.
 - Show the generated token clearly so staff can give it to the customer.
 
 ### Actions
@@ -211,11 +211,11 @@ This document defines the MVP screens, their routes, users, contents, interactio
 ### Layout
 - Header with kitchen identity and sign-out.
 - Columns or tabs: Accepted, Preparing, Ready.
-- Cards sorted oldest first within each stage.
+- Cards sorted by `accepted_at ASC, queue_sequence ASC` within each stage.
 - Each card shows token, order source, item names, quantities, notes (if supported), and elapsed time.
 
 ### Actions
-- **Start Preparing** changes Accepted → Preparing only for the oldest Accepted order by original creation time and stable tie-breaker, when no other order is Preparing. The backend enforces both checks atomically across kitchen sessions. Earlier Placed orders await staff acceptance and do not block Accepted orders.
+- **Start Preparing** changes Accepted → Preparing only for the oldest Accepted order by `accepted_at ASC, queue_sequence ASC`, when no other order is Preparing. The backend enforces both checks atomically across kitchen sessions. Placed orders await staff acceptance and have no preparation queue position.
 - **Mark Ready** changes Preparing → Ready.
 - Ready orders remain visible until authorized staff/admin marks them Collected after handover. This recorded transition moves them to history.
 - At most one card is Preparing. Once it becomes Ready, the next eligible Accepted order can start while previous Ready orders await collection.

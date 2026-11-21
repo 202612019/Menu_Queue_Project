@@ -8,11 +8,11 @@ This document defines how students, counter staff, kitchen staff, and administra
 2. Student browses `/menu`, searches or filters items, and adds available items to the cart.
 3. Student signs in with email and password if needed, opens `/cart`, checks quantities and total, then continues to `/checkout`.
 4. Student provides required student name and email and submits the order.
-5. The backend checks that the canteen is Open, re-validates item availability and prices, and uses a safe database transaction to create the order as Placed, assign a unique date-prefixed daily token, record source as `online`, and place it in the shared queue. A retried submission uses the same request identity to avoid duplicate creation.
+5. The backend checks that the canteen is Open, re-validates item availability and prices, and uses a safe database transaction to create the order as Placed, assign a unique date-prefixed daily token, record source as `online`, and add it to incoming orders awaiting acceptance. A retried submission uses the same request identity to avoid duplicate creation.
 6. Student is sent to `/orders/:orderId` and sees the token and current status.
 7. Staff reviews the new order and accepts or rejects it.
-8. If accepted, kitchen staff sees it in the Accepted column.
-9. Kitchen staff start the oldest Accepted order by original queue order when no other order is Preparing, then mark it Ready when finished.
+8. If accepted, the backend records `accepted_at` and kitchen staff sees it in the Accepted column.
+9. Kitchen staff start the oldest Accepted order by `accepted_at ASC, queue_sequence ASC` when no other order is Preparing, then mark it Ready when finished.
 10. Student sees Ready, pays at the counter during collection, and receives the order.
 11. Authorized staff marks the order Collected after handover. It leaves the active queue, remains in order history, and its stored total contributes to sales statistics.
 
@@ -21,10 +21,10 @@ This document defines how students, counter staff, kitchen staff, and administra
 1. Student visits the canteen counter and tells staff the requested items.
 2. Staff opens `/staff` and selects Add Walk-in Order.
 3. Staff enters a customer name or counter reference, selects available items and quantities, reviews the total, and creates the order.
-4. The backend validates the order and creates it with source `walk_in` and status Placed, allocates a date-prefixed token from the same daily sequence through the shared safe transaction, and adds it to the same queue. A retried creation request must not create a duplicate order.
+4. The backend validates the order and creates it with source `walk_in` and status Placed, allocates a date-prefixed token from the same daily sequence through the shared safe transaction, and adds it to incoming orders awaiting acceptance. A retried creation request must not create a duplicate order.
 5. Staff gives the token to the customer (printed or spoken; printing is not required for the MVP).
-6. Staff explicitly accepts the Placed order. Creating a walk-in order does not automatically accept it.
-7. Kitchen staff process it through Accepted → Preparing → Ready using the same oldest-Accepted rule and single Preparing slot as online orders.
+6. Staff explicitly accepts the Placed order, recording `accepted_at`. Creating a walk-in order does not automatically accept it.
+7. Kitchen staff process it through Accepted → Preparing → Ready using the same `accepted_at ASC, queue_sequence ASC` priority and single Preparing slot as online orders.
 8. The customer pays during collection. Staff marks the order Collected after handing it over.
 9. The order remains in history and contributes to collected-order sales statistics.
 
@@ -57,7 +57,7 @@ Rules:
 - Only staff/admin may Accept or Reject a Placed order.
 - Both online and walk-in orders are created as Placed. Acceptance is an explicit staff/admin action for either source.
 - Only kitchen staff/admin may move Accepted → Preparing → Ready.
-- Starting preparation must atomically check that the order is the oldest Accepted order and that no other order is Preparing.
+- Starting preparation must atomically check that the order is the oldest Accepted order by `accepted_at ASC, queue_sequence ASC` and that no other order is Preparing.
 - Authorized staff/admin may mark Ready → Collected after handing over the order. Ready orders remain visible until this transition is recorded.
 - A student may request cancellation only while status is `Placed`. If accepted before the request is processed, cancellation is no longer available to the student.
 - Every status change records who changed it and when.
@@ -71,12 +71,12 @@ Rules:
 3. The numeric sequence restarts for each canteen business day. Its timezone and cutoff remain open in section 12. The backend determines the business date.
 4. Both sources allocate tokens through one safe database transaction. Concurrent requests must never produce duplicate full tokens. Order creation, item snapshots, and token allocation succeed together.
 5. A full date-prefixed token is never reassigned after collection, cancellation, rejection, or a business-day change. Database uniqueness must enforce this. The numeric suffix can repeat on a different business date.
-6. Active queue order is FIFO by successful order creation time (with a stable database sequence/ID as a tie-breaker).
+6. Preparation queue order is FIFO among Accepted orders by `accepted_at ASC, queue_sequence ASC`.
 7. Rejected and cancelled orders do not occupy an active queue position.
 8. Collected orders are removed from the active queue but remain in history.
 9. Staff filters (Online, Walk-in, status) must not change the underlying queue order.
 10. The MVP does not provide a priority queue. If the college later requires priority handling, document and approve that rule before implementation.
-11. Preparation uses FIFO among Accepted orders, ordered by original successful creation time and stable tie-breaker. Acceptance time does not replace creation time. An earlier Placed order is awaiting staff review and does not block an Accepted order from starting.
+11. Staff acceptance records a trusted `accepted_at` timestamp, which is preserved afterward. The earliest acceptance timestamp has priority, with `queue_sequence` resolving ties. Placed orders await staff review and have no preparation queue position.
 12. The kitchen processes one order at a time. At most one order may have Preparing status across all kitchen sessions. Ready orders do not occupy the preparation slot, so the next eligible order may start before collection.
 13. Enforce the single Preparing slot and oldest-Accepted check atomically in the database/backend. Two concurrent Start Preparing requests must not start two orders or bypass an older Accepted order.
 
@@ -158,12 +158,13 @@ Rules:
 - [ ] Walk-in orders require explicit acceptance before kitchen preparation.
 - [ ] Retrying the same online or walk-in creation request returns one order and one token.
 - [ ] Walk-in order receives a token from the same sequence as online orders.
-- [ ] Online and walk-in orders appear in one FIFO queue.
+- [ ] Accepted online and walk-in orders appear in one FIFO preparation queue ordered by `accepted_at ASC, queue_sequence ASC`.
 - [ ] Staff can accept a Placed order.
 - [ ] Staff can reject a Placed order with a reason.
 - [ ] Kitchen can move Accepted → Preparing → Ready.
-- [ ] Start Preparing selects the oldest Accepted order by original creation order and stable tie-breaker, including when acceptance occurs out of order.
-- [ ] An earlier Placed order does not block the oldest Accepted order.
+- [ ] Start Preparing selects the oldest Accepted order by `accepted_at ASC, queue_sequence ASC`, including when acceptance order differs from creation order.
+- [ ] Equal acceptance timestamps use `queue_sequence ASC` as the stable tie-breaker.
+- [ ] Placed orders have no preparation queue position and do not block the oldest Accepted order.
 - [ ] Concurrent kitchen actions cannot produce more than one Preparing order.
 - [ ] A Ready order can await collection while the next eligible order starts preparation.
 - [ ] Ready orders remain visible until authorized staff/admin records Collected after handover.
@@ -208,7 +209,7 @@ The MVP is ready for demonstration when:
 8. The test checklist has been run, with failures documented and fixed or clearly disclosed.
 9. The deployed URL opens successfully on a phone.
 10. Tokens use the agreed business-day boundary, daily sequence, mandatory date prefix, safe allocation transaction, and permanent uniqueness across history.
-11. Both sources start as Placed, require explicit acceptance, and share oldest-Accepted FIFO preparation with at most one Preparing order.
+11. Both sources start as Placed, require explicit acceptance, and share FIFO preparation by `accepted_at ASC, queue_sequence ASC` with at most one Preparing order.
 12. Approximate queue-based waits are clearly labelled as changeable. Sales count Collected orders only, and catalogue archiving preserves historical orders.
 
 ## 12. Remaining decisions and consistency review
@@ -217,7 +218,7 @@ The user approved the React + Vite + TypeScript + Tailwind CSS + Supabase archit
 
 The approved decisions resolve the earlier conflicts about optional date prefixes, walk-in acceptance, category-management scope, parallel preparation, and the Ready-to-history shortcut. The daily numeric suffix may repeat across dates. The full date-prefixed token is never reused. Completed orders mean Collected orders throughout these documents.
 
-Preparation FIFO is applied to Accepted orders using their original creation order, as directed by the user's oldest-Accepted rule. Earlier Placed orders await review and do not reserve the Preparing slot. This interpretation is stated consistently across the brief, screens, and AGENTS.md.
+The user resolved preparation priority on 19 November 2026. Accepted orders use `accepted_at ASC, queue_sequence ASC`, with the earliest acceptance first. Placed orders await review and have no preparation queue position. This confirmed rule is stated consistently across the brief, screens, AGENTS.md, and database guide.
 
 The following details remain unresolved and must not be silently treated as approved requirements.
 
@@ -227,7 +228,7 @@ The following details remain unresolved and must not be silently treated as appr
 | Closed-state walk-in orders | Decide whether staff/admin may create walk-in orders while Closed. Online order creation is already explicitly blocked. |
 | Waiting-time baseline | Choose an approximate per-order preparation time and how to count Placed orders and partially prepared work in estimates. Capacity is fixed at one Preparing order. |
 | First administrator | Choose a secure initial administrator provisioning process, since public registration grants only Student access. |
-| Account onboarding | Confirm email verification, password recovery, and how admin-created staff securely set their passwords. Passwords and privileged credentials must not be exposed. |
+| Account onboarding | Existing hosted settings require email confirmation. Basic password recovery is implemented in `04-authentication.md`; completed live email flows require verification. Confirm SMTP delivery and how admin-created staff securely set their passwords. Passwords and privileged credentials must not be exposed. |
 | Checkout price changes | Decide whether a changed price requires a revised-total confirmation before order creation. Backend price revalidation is mandatory. |
 | Category archiving | Decide whether active items under an archived category are hidden/disabled or must first be reassigned. Historical orders always remain intact. |
 | Sales reporting dates | Decide whether date-filtered sales use collection date or creation date. Only Collected orders contribute to sales in either case. |

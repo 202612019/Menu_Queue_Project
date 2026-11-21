@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { homeContent } from '../content/home'
 import { formatPrice } from '../utils/currency'
 import { CloseIcon } from './Icons'
@@ -46,7 +47,7 @@ export function CartPanel({ isOpen, items, itemCount, totalPaise, onClose, onCha
           <div className="py-16 text-center">
             <h3 className="text-xl font-semibold">{homeContent.cart.emptyTitle}</h3>
             <p className="mx-auto mt-3 max-w-xs text-base leading-relaxed text-stone-600">{homeContent.cart.emptyDescription}</p>
-            <a href="#menu" onClick={handleClose} className="button-primary mt-6">{homeContent.cart.browse}</a>
+            <Link to="/#menu" onClick={handleClose} className="button-primary mt-6">{homeContent.cart.browse}</Link>
           </div>
         ) : (
           <ul className="space-y-6">

@@ -389,3 +389,509 @@ At the end, provide:
 Work step by step. First inspect the existing project and explain your implementation plan. Then implement Phase 3 without damaging previous work.
 
 Implementation choices for this phase: use JavaScript/JSX components and data, in-page navigation, a native cart dialog, integer-paise arithmetic, clearly labelled demo information, and local illustrative photos. The original configuration, dependencies, historical planning documents, and Git remote are preserved. Browser testing identified a fixed-width overflow at 320px. Removing the inherited body minimum width resolved it.
+
+## 9. Phase 4 Supabase database design and setup
+
+# Phase 4: Supabase Database Design and Setup
+
+We have completed Phase 1, Phase 2, and Phase 3 of my College Canteen Menu and Queue Management System.
+
+Now start Phase 4: Database Design and Supabase Setup.
+
+I am a beginner with Supabase and PostgreSQL, so explain everything step by step.
+
+## 1. Existing Project
+
+My existing technology stack:
+
+- React
+- Vite
+- JavaScript with JSX
+- Tailwind CSS
+- Supabase (database and authentication)
+
+IMPORTANT:
+- Continue using the existing GitHub repository.
+- Do not create a new project.
+- Do not change my existing Git remote.
+- Use `.jsx` for React components.
+- Do not unnecessarily modify the existing homepage or cart.
+- Preserve all Phase 1, Phase 2, and Phase 3 documentation.
+
+## 2. First Inspect the Project
+
+Before making changes:
+
+1. Read AGENTS.md and all relevant project documentation.
+2. Inspect the existing food data in `src/content/foodItems.js`.
+3. Review the existing project structure.
+4. Check whether a Supabase project or configuration already exists.
+5. Explain the database implementation plan before proceeding.
+
+Follow the previously documented requirements and decisions. Do not silently change the queue workflow.
+
+## 3. Create These Database Tables
+
+Use PostgreSQL through Supabase.
+
+### Table 1: profiles
+
+Fields:
+- id (UUID, primary key, references auth.users)
+- full_name
+- email
+- role (student, staff, kitchen, admin)
+- created_at
+- updated_at
+
+New registered users should have the Student role by default. Privileged roles must only be assigned through an authorized administrative process.
+
+### Table 2: categories
+
+Fields:
+- id
+- name
+- description
+- is_active
+- created_at
+- updated_at
+
+### Table 3: menu_items
+
+Fields:
+- id
+- category_id (foreign key)
+- name
+- description
+- price
+- image_url
+- is_available
+- created_at
+- updated_at
+
+Use a suitable numeric data type for prices in Indian Rupees.
+
+### Table 4: orders
+
+Fields:
+- id
+- user_id (nullable for walk-in orders)
+- order_type (online or walk_in)
+- customer_name
+- token_number
+- business_date
+- status
+- total_amount
+- accepted_at
+- created_at
+- updated_at
+
+Order statuses:
+- placed
+- accepted
+- preparing
+- ready
+- collected
+- cancelled
+
+Use appropriate constraints and indexes.
+
+### Table 5: order_items
+
+Fields:
+- id
+- order_id (foreign key)
+- menu_item_id (foreign key)
+- item_name_snapshot
+- unit_price_snapshot
+- quantity
+- subtotal
+- created_at
+
+Keep price and name snapshots so historical orders remain accurate when menu items change.
+
+### Table 6: order_status_history
+
+Fields:
+- id
+- order_id
+- old_status
+- new_status
+- changed_by
+- changed_at
+
+This table records the history of order status changes.
+
+### Table 7: daily_token_counters
+
+Fields:
+- business_date (primary key)
+- last_token_number
+- updated_at
+
+This table will support safe, unique daily token allocation.
+
+### Table 8: canteen_settings
+
+Fields:
+- id
+- is_open
+- opening_time
+- closing_time
+- updated_at
+
+Only authorized admins should be able to change canteen settings.
+
+## 4. Database Relationships
+
+Implement appropriate foreign keys:
+
+- One category can contain multiple menu items.
+- One user can place multiple orders.
+- One order can contain multiple order items.
+- One menu item can appear in multiple order items.
+- One order can have multiple status history records.
+- Status history should record which authorized user made a change.
+
+Use UUID primary keys where appropriate.
+
+## 5. Queue Management Rules
+
+The database must support these requirements:
+
+1. Online and walk-in orders use the same orders table.
+2. Both order types use the same daily token numbering system.
+3. Tokens must be unique for each business date.
+4. Token allocation must be safe when multiple orders are created simultaneously.
+5. Newly placed orders do not enter the preparation queue until accepted by staff.
+6. Queue priority is based on accepted_at, oldest first.
+7. Ready orders no longer occupy the active preparation position.
+8. Keep collected and cancelled orders for historical records.
+
+Do not create a separate queue table.
+
+Do not implement the complete ordering interface or kitchen workflow in this phase.
+
+## 6. Security Requirements
+
+Configure Row Level Security (RLS) properly.
+
+Important:
+- Students must not be able to access other students' private orders.
+- Students must not be able to assign themselves Staff, Kitchen, or Admin roles.
+- Only authorized staff should manage order statuses.
+- Only authorized admins should manage menu categories, food prices, and canteen settings.
+- Kitchen staff should have only the permissions needed for their workflow.
+- Never create unrestricted public write policies.
+- Never expose the Supabase service_role key in frontend code.
+- Do not put passwords or API secrets in source files.
+
+Explain each important RLS policy.
+
+If a policy depends on authentication functionality that is not yet implemented, document that dependency rather than weakening security.
+
+## 7. Supabase Setup
+
+Explain how I can:
+
+1. Create or select my Supabase project.
+2. Open the SQL Editor.
+3. Apply the database migration.
+4. Check whether all tables were created successfully.
+5. Verify foreign keys and indexes.
+6. Check RLS status and policies.
+
+Do not assume you can access my Supabase account.
+
+If manual dashboard steps are required, explain them clearly.
+
+## 8. Project Files
+
+Create and maintain an organized database structure.
+
+Suggested structure:
+
+supabase/
+  migrations/
+    001_initial_schema.sql
+  README.md
+
+You can adjust this if necessary.
+
+Add useful documentation explaining:
+- Table purposes.
+- Column meanings.
+- Database relationships.
+- Queue-related database rules.
+- RLS security policies.
+- How to apply migrations.
+
+## 9. Sample Data
+
+Prepare initial sample categories and menu data based on the existing `foodItems.js`.
+
+Do not create duplicate categories or overwrite existing data unexpectedly.
+
+Use safe, repeatable seed SQL where possible.
+
+Clearly label sample data.
+
+## 10. Testing and Verification
+
+After creating the schema:
+
+1. Check SQL syntax.
+2. Verify table definitions.
+3. Verify foreign key relationships.
+4. Verify constraints and indexes.
+5. Verify daily token uniqueness constraints.
+6. Verify RLS is enabled on appropriate tables.
+7. Check that no unsafe public write policies exist.
+8. Verify sample data insertion is safe to repeat.
+
+Do not claim database deployment or live Supabase testing succeeded unless it was actually performed.
+
+## 11. Restrictions
+
+Do not implement:
+- Complete authentication UI.
+- Online payment.
+- Full ordering workflow.
+- Queue dashboard.
+- Kitchen dashboard.
+- Admin dashboard.
+- Live order tracking.
+
+Those will be implemented in later phases.
+
+Do not delete existing files or modify working Phase 3 features unnecessarily.
+
+## 12. Final Report
+
+At the end, explain:
+
+1. Tables created.
+2. Relationships created.
+3. Constraints and indexes.
+4. RLS policies and their purpose.
+5. Files created or modified.
+6. Whether the migration was locally prepared or actually applied to Supabase.
+7. Any remaining manual steps.
+8. How I can verify everything in Supabase.
+
+Explain the database in beginner-friendly language.
+
+Work step by step. Do not proceed with destructive changes or claim successful deployment without verification.
+
+Review findings: the new accepted_at priority differs from the approved creation-time priority among Accepted orders. Both timestamps are stored/indexed while the later selection rule awaits confirmation. Rejected is retained from the approved workflow because the new list omitted it without explicitly removing it. The requested single profiles.role field provides one primary role per account. This phase prepares SQL and local tests, with hosted Supabase application handled through documented manual steps.
+
+Verification work: the initial Windows test runner stalled on inherited pg_ctl pipes and was corrected. A sandbox loopback denial required running the isolated test runner outside the sandbox. A schema test expected only foreign_key_violation, while PostgreSQL returned restrict_violation for restricted deletion. The test was corrected to recognize both rejection codes. Audit timestamps were changed to clock_timestamp so they follow actual order creation within a transaction.
+
+Final local result on 19 November 2026: the migration, repeated seed, schema checks, RLS checks, edited-data seed preservation, 40 mixed-source orders across eight concurrent clients, and read-only verification queries passed on PostgreSQL 18.4. The isolated test server stopped. Hosted Supabase application and live Auth/API checks await the documented manual setup.
+
+## 10. Confirm acceptance-time preparation priority
+
+Please resolve the queue priority question.
+
+Use `accepted_at` as the preparation queue priority, with the oldest accepted order first.
+
+Please:
+
+1. Inspect the existing migration, indexes, constraints, tests, and documentation.
+2. Ensure queue-related indexes and documentation consistently use `accepted_at`.
+3. Update any relevant local tests.
+4. Preserve all other database rules and existing files.
+5. Do not apply anything to hosted Supabase yet.
+6. Explain exactly what changed.
+
+Do not use `created_at` as the preparation priority.
+
+This decision supersedes the earlier creation-time preparation rule and resolves the priority question recorded in entry 9. Current preparation candidates are Accepted orders sorted by `accepted_at ASC, queue_sequence ASC`. Earlier entries preserve the historical prompts and decisions. The initial migration's creation-time preparation index is removed, and local regression coverage checks reverse acceptance order, equal-time ties, timestamp preservation, and candidate eligibility.
+
+Verification on 19 November 2026: the complete isolated PostgreSQL suite passed, including the new queue-priority checks and the existing schema, RLS, seed preservation, and mixed-source concurrency checks. A baseline comparison confirmed that the migration changed only the obsolete preparation index and queue comments. The seed, RLS tests, Auth fixtures, and concurrency fixture retained their baseline hashes. Verification used a temporary local cluster, which was stopped afterward.
+
+## 11. Run SQL in the created Supabase project
+
+i created supabase project . run initial schema query, seed.sql query and verify.sql query
+
+Outcome: browser control stopped because it could not verify the current Supabase URL. No hosted SQL was executed by the assistant. The user received the three local SQL file links and their execution order. Hosted application and verification were not confirmed.
+
+## 12. Check the Supabase SQL Editor link
+
+https://supabase.com/dashboard/project/tlcyidzkiopxbffytxfi/sql/5ce73ba9-8a49-4309-aba6-f305e0c9d8f7
+
+"This is the supabase link. please check any issue or not"
+
+Outcome on 20 November 2026: the local AGENTS instructions, verification SQL, and database setup guide were reviewed. The computer-use connection was unavailable, including after its documented recovery attempts. The web tool could not access the supplied dashboard URL either. The hosted query text, results, and database state could not be inspected. No hosted SQL or database changes were made, and no hosted success or failure is claimed. A screenshot or copied SQL results are needed to assess the dashboard outcome.
+
+## 13. Retry inspection with Chrome open
+
+now my chrome is open, can yoy check
+
+Outcome on 20 November 2026: available tools were inspected, but no browser-control or computer-use tool was connected to this chat. The open Chrome window could not be inspected. No hosted queries or database changes were made. A screenshot or copied Results-panel output is still needed to assess the hosted verification result.
+
+## 14. Verify frontend reads from the seeded Supabase database
+
+We have completed the Supabase database migration, seed data, and verification. The Supabase client is configured in `src/lib/supabase.js`, and `.env.local` contains the project URL and publishable key.
+
+Please perform the following task:
+
+1. Inspect the existing Supabase client configuration.
+2. Verify that the React application can connect to the Supabase project.
+3. Create a small temporary connection test that fetches:
+   - Categories from `categories`
+   - Available food items from `menu_items`
+4. Display the fetched results in the browser temporarily, without changing the existing homepage design.
+5. Handle loading, empty data, and errors clearly.
+6. Do not expose any secret keys.
+7. Do not use the service_role key.
+8. Do not modify the database schema or existing migration files.
+9. Preserve the existing JSX structure and JavaScript approach.
+10. Run the production build and report the results.
+
+Do not start authentication or order placement yet. First verify that the frontend can successfully read the seeded database data.
+
+Implementation on 20 November 2026: inspected the installed client and environment variable names without printing their values. The configured key is publishable, and Git ignores `.env.local`. Added a development-only, lazy-loaded `/supabase-test` page with loading, empty, safe error, timeout, and retry states. The page uses two SELECT queries, with `is_available = true` for food, and displays names, categories, and rupee prices. Added configuration validation to the existing client, centralized test text, a shared query helper, placeholder `.env.example`, and README instructions. Existing homepage components, migrations, and database data were preserved. No packages, authentication flow, order placement, or privileged key use were added.
+
+Verification: the first network attempt was blocked by the sandbox with EACCES. The authorized read-only retry outside the network sandbox passed. The exact query function, loaded through Vite with the configured client, returned five categories and seven available food items from the hosted project. Both GET requests returned HTTP 200 and allowed the local development origin through CORS. Empty-response handling, availability filtering, safe credential/permission/schema/network messages, initial loading markup, disabled loading button, and HTTP delivery of the homepage/test route/module passed checks. The production build and both TypeScript checks passed, and production JavaScript excluded the diagnostic page and Supabase configuration. No browser-control tool was available, so interactive rendering, retry clicks, and visual layout were not verified. The development server was started at http://127.0.0.1:5173/ for the user to open the temporary page.
+
+## 15. Inspect and plan authentication
+
+inspect the existing project and plan the authentication implementation before changing code.
+
+Outcome: inspected the application, client, existing profile trigger, RLS tests, and requirements. Read the project's public hosted Auth settings: email/password and registration enabled; email auto-confirm disabled. Proposed routing, session/provider state, Student-only registration, confirmation, login/logout, profile guards, account display, and password recovery. No files or hosted settings were changed in that planning turn. The user approved implementation in the next prompt.
+
+## 16. Implement approved basic authentication
+
+Approved. Please implement the complete basic authentication plan as proposed.
+
+Important instructions:
+
+- Preserve the existing homepage design and functionality.
+- Keep the main App component mounted so the cart state is preserved during navigation.
+- Continue using JSX, not TSX.
+- Do not modify existing database migrations or RLS policies unless you identify a genuine security issue. If you do, stop and explain it first.
+- Never allow users to assign or modify their own roles.
+- New registrations must always receive the Student role through the existing database trigger.
+- Never expose service_role keys or other privileged secrets.
+- Handle email confirmation, session restoration, profile-loading errors, and password recovery carefully.
+- Do not claim a feature is verified unless you have actually tested it.
+
+Implement the routes, AuthProvider, authentication pages, route guards, and account page described in the plan.
+
+After implementation:
+
+1. Run the production build and TypeScript checks.
+2. Test the homepage and cart.
+3. Test registration and email confirmation.
+4. Test login, refresh persistence, and logout.
+5. Test password recovery.
+6. Verify role protection and profile isolation.
+7. Report which tests passed, failed, or could not be tested.
+
+Do not deploy anything or change hosted Supabase settings without my approval.
+
+Implementation on 20 November 2026: added React Router, AuthProvider/useAuth, the six planned routes, profile/role and recovery guards, accessible auth forms, a read-only account page, safe errors, early recovery tracking, and a short-lived user-bound recovery marker. App remains mounted, preserving the demo cart across client navigation. Header/footer/cart links use client navigation. Registration supplies only full_name metadata and relies on the existing database trigger for Student assignment. No role-update interface, migrations, RLS changes, deployment, or hosted setting changes were made. Added Vitest/Testing Library/JSDOM tests and updated documentation. All application components remain JSX.
+
+Verification work: npm network access and local PostgreSQL startup were initially blocked by the sandbox; approved retries outside it succeeded. The initial TypeScript check caught modifier ordering on a PostgREST single-row query; abortSignal was moved before single. One initial component test tried to resolve its asynchronous fixture before the fixture was ready; it was corrected to wait for readiness. The final component/SDK suite has 23 passing tests, both TypeScript checks pass, and the production build passes with a non-fatal chunk-size warning. The existing isolated database suite passes, including default Student assignment, rejected role metadata, denied self-promotion and cross-account isolation. The migration and RLS test hashes remained unchanged.
+
+## 17. Authorized live test inbox and follow-up results
+
+The user supplied an email address they control and explicitly authorized registration and recovery tests through their Supabase project. The address is omitted from this repository log to avoid publishing private contact information. No password or API key was requested from the user.
+
+An initial test password was generated only in memory. The live registration request succeeded. The user reported a confirmation-link error and then an unreachable browser page. They supplied an error-bearing callback address showing otp_expired. A live password login independently confirmed that the email was already verified. The profile's role was Student, the own-profile read and SDK session restoration passed, and an attempted role change was denied with 42501. Local-scope logout also passed. A recovery email request was accepted.
+
+The user then reported an unreachable recovery callback and an unreachable homepage. Local checks distinguished IPv4 and IPv6 listeners, and a development server was started on the normal user's IPv4 loopback. The user subsequently confirmed the homepage loads. They reported that recovery/password save still failed and supplied a screenshot of the forgot-password page showing the expected safe email-rate-limit message. Further live email attempts stopped. No sending limits, SMTP, redirects, or other hosted settings were changed.
+
+The completed live password reset, subsequent user-chosen-password login and full Chrome refresh/persistence cycle remain unverified because recovery was blocked by the hosted email rate limit. Automated tests cover those application paths, including one real-SDK recovery URL test with simulated HTTP. Actual cross-account database isolation passed in the local PostgreSQL suite; hosted checks used one authorized test account. The temporary password-holding verification process was stopped. The user can choose their own password through recovery once sending is available. No credentials or email-link tokens were stored in repository files.
+
+## 18. Explain and reduce duplicate recovery requests
+
+After the click forgot password I received email but second time it shown an error
+
+The user supplied screenshots showing a successful recovery request followed by the safe rate-limit error. Screenshots and their private contact details are not copied into repository files.
+
+Review on 20 November 2026: Supabase's documented password-recovery and project email limits explain why a later request can be rejected even after an earlier email was delivered. The exact remaining quota and retry time were not inspected. No additional live email was sent, and no hosted settings, database migrations, or RLS policies were changed.
+
+Updated the recovery page to replace a successful request's form with Check your email instructions. It removes the immediate Send action and guards against another submission. An explicit Use a different email action restores an empty form without sending. Rate-limit failures now advise using an existing newest unused link or waiting for email sending to become available. Added a regression for duplicate-submit prevention and email correction, and extended the rate-limit-message test.
+
+Verification: all 24 automated tests passed. Both TypeScript checks and the production build passed; the existing non-fatal bundle-size warning remains. No additional live emails were requested, and the full live password-change flow was not retested.
+
+## 19. Investigate the callback before changing files
+
+The Forgot Password page improvement is good. However, my previous live recovery link redirected to:
+
+http://localhost:5173/auth/callback
+
+It displayed:
+
+"This email link is missing, invalid, expired, or already used."
+
+Please investigate this callback issue separately.
+
+Inspect:
+
+1. src/lib/supabase.js
+2. src/auth/AuthProvider.jsx
+3. src/auth/authService.js
+4. The /auth/callback route and recovery handling.
+5. Whether detectSessionInUrl automatically exchanges the PKCE code while our application also calls exchangeCodeForSession.
+6. Whether React effects or multiple components could process the same callback twice.
+7. Whether the recovery request and callback use the same Supabase client and browser storage.
+
+Supabase PKCE codes are single-use and expire after five minutes.
+
+Do not send another email, consume another recovery link, or modify hosted Supabase settings.
+
+First report the likely cause and propose the smallest safe fix. Do not change files until I approve.
+
+Outcome: no files were changed during investigation. The client uses implicit flow and contains no manual exchange call. SDK initialization is cached, while the app rejected missing initial URL flags before reading the session and ignored PKCE query-code flags. Read-only synthetic fixtures confirmed those recognition gaps. The earlier explicit otp_expired response remained separate evidence of an expired/used link. The investigation could not establish the exact latest live failure from the cleaned callback address alone. Proposed provider-owned restoration and recovery-state-aware callback validation, with distinct errors and offline tests.
+
+## 20. Implement the approved minimal callback fix
+
+Approved. Please implement the smallest safe callback fix based on your investigation.
+
+Requirements:
+
+1. Keep the existing implicit authentication flow.
+2. Keep Supabase SDK as the only owner of callback processing.
+3. Do not add manual exchangeCodeForSession calls.
+4. Use the PASSWORD_RECOVERY event to establish a genuine recovery state.
+5. Wait for AuthProvider initialization and session restoration before validating the callback.
+6. Support refreshing the callback page when a valid recovery session has already been restored.
+7. Persist recovery state safely for the current browser tab, associated with the authenticated user/session and a reasonable expiry.
+8. An ordinary existing login session must never qualify as a password-recovery session.
+9. Clear recovery state after successful password update or logout.
+10. Distinguish invalid/expired links, missing links, and temporary initialization/network errors.
+11. Handle React StrictMode without duplicate processing.
+
+Add automated regression tests for:
+
+- Successful recovery callback.
+- Callback refresh after URL credentials have been consumed.
+- Ordinary logged-in session rejected as recovery.
+- Expired or reused recovery link.
+- StrictMode repeated initialization.
+- Initialization/network failure and retry.
+
+Do not modify hosted Supabase settings, database migrations, RLS policies, or send any recovery emails.
+
+After implementation, run all frontend tests, TypeScript checks, and the production build.
+
+Report exactly which tests passed and which live behaviors remain unverified.
+
+Implementation: the callback page now reads settled provider state and performs no independent SDK restoration. Provider requests share an in-flight promise across StrictMode and wait for the genuine recovery event. The tab marker is bound to the user ID and JWT session_id for at most 15 minutes, with no tokens/passwords stored. Ordinary/different sessions and old user-only markers cannot resume it. Successful password updates and logout clear it. Callback errors distinguish missing, invalid/expired, unsupported-flow and temporary failures. Temporary SDK initialization retry reloads the same unconsumed URL because that initialization result is cached; ordinary session-read retry stays in place. Root-to-callback routing preserves an unconsumed URL until the SDK handles it. Implicit flow and the existing client configuration are unchanged. No emails, hosted changes, migrations or RLS changes were made.
+
+Verification uses component tests and real-SDK tests with mocked HTTP/synthetic URLs only. No live recovery link was consumed. Full Chrome reload/retry and completed live recovery/password change remain unverified. Final test/build results are recorded after verification below.
+
+Final verification: all 42 frontend tests in four files passed. Both standalone TypeScript checks and the production build passed; the existing non-fatal chunk-size warning remains. The real SDK fixture confirmed initialization failures are cached, preserve an unconsumed synthetic URL, and can be retried by a fresh SDK owner without a manual exchange. A further provider regression confirmed ordinary auth events cannot end initialization early. The migration and original RLS-test hashes are unchanged. No live email/link, hosted setting, schema, RLS, dependency, or deployment action was performed for this fix.
+
+## 21. Existing account receives no new signup email
+
+when I sign up or creat account, after the enter details I received this page as image. but I can't receive an email. i also try resend
+
+The user supplied a screenshot of the neutral registration/resend screen and confirmed they used the same email as the earlier authorized live test. That account's email was already confirmed during that test. Its generated test password had been held only in a temporary process and discarded. Repeated signup does not replace that password, and an already-confirmed account does not need another signup confirmation.
+
+Inspected registration/resend handling and official Supabase documentation. Updated neutral registration/resend wording so it does not promise delivery, and added separate Sign in and Forgot Password links below the form. No frontend account-existence disclosure was introduced. Added a regression for an obfuscated existing-account response without automatic resend or recovery requests. No live emails, authentication requests, hosted settings, database files, or credentials were changed. The user should use password recovery to choose their own password when email sending is available.
+
+Verification: all 43 frontend tests passed. TypeScript checks and the production build passed with the existing non-fatal bundle-size warning. The official Supabase Auth resend handler confirms that an already-confirmed user receives a successful response without another signup email. No live email delivery was tested in this follow-up.

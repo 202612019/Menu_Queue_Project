@@ -1,6 +1,6 @@
 # Menu_Queue_Project
 
-College Canteen is a college canteen menu and queue management project. Phase 2 established the React, Vite, and Tailwind CSS foundation. Phase 3 adds the student homepage, searchable demo food menu, category filters, and an interactive cart. React components use JavaScript `.jsx` files and data uses `.js` files. The existing TypeScript checker checks JavaScript through `allowJs` and `checkJs`. Supabase integration is planned for a later phase.
+College Canteen is a college canteen menu and queue management project. The app includes the student homepage, searchable demo food menu, interactive cart, and basic Supabase email/password authentication. React components use JavaScript `.jsx` files and data uses `.js` files. The existing TypeScript checker checks JavaScript through `allowJs` and `checkJs`. The homepage still uses its existing demo data; a separate development page tests public Supabase menu reads.
 
 ## Run the project
 
@@ -63,7 +63,7 @@ The homepage uses a locally bundled DM Sans font and local illustrative food pho
 
 The cart lives in React state and resets on page refresh. It supports adding available food, increasing/decreasing quantities, and confirmed removal. Quantity cannot decrease below one. Its badge counts all units, including repeated additions of the same dish. Selecting a category or searching preserves the cart.
 
-Authentication, Supabase, order submission, online payments, tracking, queue management, staff dashboards, and deployment remain future work. The existing configuration and dependency versions support this phase without additional packages.
+Homepage database integration, order submission, tracking, queue management, staff provisioning, dashboards, and deployment remain future work. Online payments are excluded from the MVP. Basic authentication uses Supabase Auth and React Router. Staff roles are assigned through the existing trusted administrator process.
 
 The existing Git repository is connected through `origin` to `https://github.com/202612019/Menu_Queue_Project.git`. Inspect the connection with `git remote -v` and local changes with `git status --short`.
 
@@ -117,3 +117,55 @@ The JSDoc comments describe props for the existing checker while keeping compone
 | Images and console | All nine displayed images loaded. No browser console errors were recorded during testing. |
 
 Run `npm.cmd run typecheck` and `npm.cmd run build` for the existing source checks and production build. Browser verification screenshots are local generated files under the ignored `.phase3-preview.local/` folder.
+
+## Phase 4 database preparation
+
+Database migrations, the repeatable demo seed, security policies, and setup instructions are in [supabase/README.md](supabase/README.md). The guide explains how to select a Supabase project, apply the SQL, inspect the tables, and run isolated local PostgreSQL checks. Hosted deployment requires the manual dashboard steps described there.
+
+## Temporary Supabase connection test
+
+The user reports that the hosted migration, seed, and SQL verification are complete. To check frontend reads, keep your project URL and publishable key in the ignored `.env.local`, using the variable names shown in [.env.example](.env.example). The existing name `VITE_SUPABASE_ANON_KEY` accepts a publishable key or a legacy anon key. Never put a secret or service-role key in a `VITE_` variable; Vite makes these values available to the browser. Restart Vite after changing environment values.
+
+Run `npm.cmd run dev` and open `/supabase-test` at the Local URL printed by Vite, usually `http://localhost:5173/supabase-test`. This separate development page shows loading, a safe error message with a retry button, or the returned categories and available food with names and rupee prices. Empty results have their own explanation because RLS can hide rows even when a request succeeds. Requests time out after 15 seconds and are cancelled when the page unmounts.
+
+The test makes only SELECT requests against `categories` and `menu_items`, filtering food by `is_available = true`. The existing public RLS policies still apply. With the unchanged seed and active categories, expect five categories and seven available food items. The eighth seeded item, Veg Burger, is unavailable and is excluded. The test does not create accounts, place orders, or change the database.
+
+Implementation: `src/lib/supabase.js` validates the public configuration, `src/lib/menuConnectionTest.js` contains the two read queries and safe error mapping, `src/content/connectionTest.js` holds interface text, and `src/pages/SupabaseConnectionTest.jsx` displays the results. `src/app/App.jsx` now lazy-loads this page only in development. The normal `/` homepage is preserved. Production builds omit the diagnostic page. To remove the test later, remove the three test-specific files and their route/import in `src/app/App.jsx`; keep the shared Supabase client and authentication routing.
+
+Connection-only verification on 20 November 2026, before authentication was added: the shared query function successfully read five categories and seven available foods from the hosted project using the publishable key. Both GET requests returned HTTP 200 with CORS allowing the local development origin. Empty-response, availability-filter, safe-error, loading-markup, and HTTP-delivery checks passed. At that stage production omitted both the diagnostic page and unused Supabase configuration. Basic authentication now uses the public client configuration in production as intended; privileged credentials are never included. Browser-control tools were unavailable for visual inspection.
+
+## Basic authentication
+
+Run `npm.cmd run dev`, then open the Local URL printed by Vite. The following routes are implemented:
+
+| Route | Purpose |
+|---|---|
+| `/login` | Email/password sign-in and confirmation-email resend. |
+| `/register` | Student registration with name, email, password, and password confirmation. |
+| `/auth/callback` | Confirmation/recovery link result after Supabase validates the session. |
+| `/forgot-password` | Request a password-recovery email. |
+| `/reset-password` | Save a password during a valid recovery session. |
+| `/account` | Protected display of the authenticated user's database profile. |
+
+`App` remains mounted across these routes, keeping the demo cart in memory. A full browser refresh still resets that demo cart, while Supabase restores the sign-in session. Header/footer links use client-side navigation. Mobile account access is in the navigation menu. The public homepage remains available without sign-in.
+
+Supabase creates profiles through the existing database trigger. Registration sends only `full_name` metadata; the database assigns Student. Role and profile data come from the protected `profiles` table. Missing profiles and loading errors block protected content with Retry and Sign out actions. No new migrations, RLS policies, elevated credentials, or staff-provisioning backend were added.
+
+The existing browser session flow is explicit in the client: persistence, automatic refresh, URL detection, and the SDK's implicit flow. Email URL credentials are handled only by the SDK and removed from the address. The callback waits for AuthProvider restoration instead of starting another SDK request. A PASSWORD_RECOVERY event creates a 15-minute, tab-local marker containing only the user ID, session ID, and expiry. It supports refreshing a cleaned callback/reset page for that same session and is cleared on logout/password update. An ordinary login does not qualify. Application messages never print raw server payloads or tokens. The marker controls UI flow; Supabase authorizes the actual password change.
+
+The callback distinguishes missing, invalid/expired, unsupported-flow, and temporary restoration errors. A temporary session-read error can be retried in place. An SDK initialization error requires reloading the current callback URL because the SDK caches its initialization result; Retry does that without sending another email or manually exchanging credentials. A reload still resets the demo cart as documented. Older recovery markers without a session ID are ignored. The callback fix has automated coverage; it has not been tested with a new live recovery email.
+
+The app requires at least eight password characters and matching confirmation fields; the server may enforce a stronger configured policy. Email confirmation is enabled in the existing hosted project. Verify the configured Site URL, allowed callback URLs, email templates, and SMTP before deployment. Nothing in this implementation changes hosted settings or deploys the app. Use the same development origin as the email callback (`localhost` and `127.0.0.1` have separate browser storage). A one-use email verification link may show `otp_expired` if opened again after it was consumed.
+
+Tests:
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+node supabase/tests/run-local.mjs
+```
+
+`npm.cmd test` uses Vitest, Testing Library, and JSDOM. It exercises the homepage/cart and authentication behavior without a real browser. One test uses the actual Supabase SDK with simulated HTTP responses to verify recovery URL processing. The PostgreSQL suite uses an isolated local database to test actual RLS and cross-account access. It must not be applied to hosted Supabase.
+
+See [authentication implementation and verification](canteen-management-docs/docs/04-authentication.md) for the file map, security boundaries, and recorded results.
