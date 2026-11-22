@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
+import { loginDestination } from '../auth/returnTo'
 import { AuthField, AuthLayout, AuthMessage } from '../components/AuthLayout'
 import { authContent as text } from '../content/auth'
 import { useAuth } from '../auth/AuthProvider'
@@ -16,13 +17,14 @@ function Submit({ busy, label }) {
 export function LoginPage() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const destination = loginDestination(useLocation().state)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [email, setEmail] = useState('')
   useEffect(() => {
-    if (!auth.initializing && !auth.sessionError && auth.user) navigate(auth.recovery ? '/reset-password' : '/account', { replace: true })
-  }, [auth.initializing, auth.sessionError, auth.user, auth.recovery, navigate])
+    if (!auth.initializing && !auth.sessionError && auth.user) navigate(auth.recovery ? '/reset-password' : destination, { replace: true })
+  }, [auth.initializing, auth.sessionError, auth.user, auth.recovery, navigate, destination])
 
   /** @param {import('react').FormEvent<HTMLFormElement>} event */
   async function submit(event) {
@@ -34,7 +36,7 @@ export function LoginPage() {
     if (!validEmail(enteredEmail)) { setError(text.emailRequired); return }
     if (!password) { setError(text.passwordRequired); return }
     setBusy(true); setError(''); setNotice('')
-    try { await loginWithPassword(enteredEmail, password); auth.finishRecovery(); navigate('/account', { replace: true }) }
+    try { await loginWithPassword(enteredEmail, password); auth.finishRecovery(); navigate(destination, { replace: true }) }
     catch (cause) { setError(getAuthError(cause)) }
     finally { setBusy(false) }
   }

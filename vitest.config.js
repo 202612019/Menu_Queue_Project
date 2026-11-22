@@ -8,5 +8,7 @@ export default defineConfig({
     setupFiles: ['./tests/setup.js'],
     include: ['tests/**/*.test.{js,jsx}'],
     clearMocks: true,
+    // Bound JSDOM workers to avoid CPU/memory contention during routing tests.
+    maxWorkers: 2,
   },
 })

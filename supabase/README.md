@@ -2,13 +2,14 @@
 
 Phase 4 prepares the database for College Canteen. The files in this folder define the schema, permissions, sample menu, and verification steps. Apply the migration to your chosen Supabase project using the dashboard steps below.
 
-The React homepage and cart continue to use the existing JavaScript demo data. This phase provides the database foundation for later authentication and ordering work.
+The React homepage now reads the live catalogue through the shared public client. Phase 7 adds local checkout RPCs and order-history UI. Its new migration remains LOCAL ONLY until separate hosted approval; the initial Phase 4 schema/seed and existing RLS are preserved.
 
 ## Files
 
 | File | Purpose |
 |---|---|
 | `migrations/20261119000100_initial_schema.sql` | Creates the eight tables, indexes, constraints, triggers, grants, and RLS policies in one transaction. Apply once. |
+| `migrations/20261122000100_student_checkout.sql` | Local additive checkout RPCs and private idempotency table. Do not apply to hosted Supabase without separate approval. |
 | `seed.sql` | Optional, repeatable demo categories and eight dishes copied from `src/content/foodItems.js`. |
 | `verify.sql` | Read-only inspection queries for the Supabase SQL Editor. |
 | `tests/run-local.mjs` | Runs the migration and adversarial checks in a new temporary PostgreSQL cluster. |
@@ -17,6 +18,10 @@ The React homepage and cart continue to use the existing JavaScript demo data. T
 | `tests/queue_priority_checks.sql` | Tests acceptance-time priority across both order sources, stable ties, preserved acceptance timestamps, and waiting-queue eligibility. |
 | `tests/rls_checks.sql` | Tests access as anonymous, student, counter staff, kitchen, admin, and trusted backend roles. |
 | `tests/concurrent_orders.sql` | Fixture transaction used by eight concurrent test clients. |
+| `tests/checkout_checks.sql`, `tests/checkout_concurrent.sql` | Actual Student RPC validation/rollback/security and concurrent unique/duplicate submissions. |
+| `tests/checkout_privileges.sql` | Effective execution rights for all three checkout RPCs and twelve private helpers, PUBLIC revocation, and private table/column denial probes. |
+| `tests/checkout_idempotency.sql` | Identical/canonical replay, changed quantities/items/additions/removals, and unchanged order/token/history/request snapshots. |
+| `hosted-preflight.md`, `preflight_phase7.sql` | Prepared read-only Phase 4 prerequisite checklist/report and rate-policy options. Not executed against hosted Supabase. |
 
 ## Understand the database
 
@@ -39,13 +44,13 @@ Supabase's SQL role `authenticated` represents signed-in API requests. The appli
 | `daily_token_counters` | One record per business date, with the last allocated numeric token and update time. Clients have no direct access. |
 | `canteen_settings` | One record with `id = 1`, `is_open`, optional opening/closing times, and update time. The initial setting is Closed, with hours left unset. |
 
-The profile's display name can initially be blank if an account was created without name metadata. Email can be null for existing non-email Auth accounts. Online checkout must later require a completed name and email before creating an order. Orders already require a nonblank customer name and an account owner for source `online`.
+The profile's display name can initially be blank if an account was created without name metadata. Email can be null for existing non-email Auth accounts. The local Phase 7 checkout RPC requires a completed name and email before creating an order. Orders require a nonblank customer name and an account owner for source `online`.
 
 New Auth users get Student access regardless of any `role` value they submit in user metadata. A trigger creates the profile and mirrors later Auth email changes. Existing Auth users are backfilled as Students. Passwords remain managed by Supabase Auth. [Supabase user-data documentation](https://supabase.com/docs/guides/auth/managing-user-data)
 
 `price` and `unit_price_snapshot` use `numeric(12,2)` in rupees. `total_amount` and generated `subtotal` use `numeric(14,2)`. These types preserve decimal money amounts. Negative amounts and NaN are rejected. The Phase 3 value `4500` paise becomes SQL `45.00` rupees.
 
-`subtotal` is calculated by PostgreSQL as `unit_price_snapshot * quantity`. A later trusted ordering operation must calculate and validate `total_amount` from its item snapshots in the same transaction. This foundation does not automatically sum order lines into the order header.
+`subtotal` is calculated by PostgreSQL as `unit_price_snapshot * quantity`. The additive Phase 7 RPC calculates and validates `total_amount` from its server-priced item snapshots in the same transaction, including a line-count check. The original foundation alone does not automatically sum order lines into the order header.
 
 The full `token`, `queue_sequence`, `status_reason`, and history `reason` columns supplement the requested fields to preserve date-prefixed identifiers, stable ordering, and rejection/cancellation explanations.
 
@@ -75,7 +80,7 @@ Both sources use `orders` and the same private token allocator. An order insert 
 
 For example, business date `2026-11-19` and number `41` produce `20261119-041`. After `999`, the suffix expands to `1000`. The unique date/number pair and unique full token preserve identity across dates. Collection, cancellation, and rejection leave the records in history, retaining their tokens.
 
-New orders start as Placed. The database assigns the creation timestamp after acquiring the daily counter lock. `created_at` records order creation and supports history lookups. Preparation priority uses the trusted acceptance timestamp, with the unique `queue_sequence` identity resolving equal acceptance times. The business date is required input from a future trusted ordering operation. The canteen timezone and business-day cutoff still need confirmation.
+New orders start as Placed. The database assigns the creation timestamp after acquiring the daily counter lock. `created_at` records order creation and supports history lookups. Preparation priority uses the trusted acceptance timestamp, with the unique `queue_sequence` identity resolving equal acceptance times. Phase 7 derives its business date on the server using the confirmed Asia/Kolkata midnight boundary; it accepts no browser date.
 
 Forward status transitions are guarded as follows.
 
@@ -126,7 +131,7 @@ All eight tables enable RLS. Default grants for these tables are replaced explic
 
 There are no public/anonymous write policies and no client deletion grants. The browser never receives a service-role credential. The service role bypasses RLS, so any future backend using it must independently verify the caller and permissions.
 
-Authentication UI and protected ordering/status RPCs belong to later phases. Counter and Kitchen clients therefore have read access without direct order-status writes at present. The future operations must enforce their exact transition permissions. Student cancellation also needs an owner-checked server operation.
+Authentication UI is implemented, and Phase 7 ordering RPCs are prepared locally pending hosted approval. Counter and Kitchen clients still have read access without direct order-status writes. Future operations must enforce their exact transition permissions. Student cancellation remains outside Phase 7 and will need a separate owner-checked server operation.
 
 Before enabling ordering, the server operation must validate canteen Open/Closed policy, required name/email, current availability and prices, positive quantities, item snapshots, the order total, ownership/source, and a retry/idempotency key in one transaction. The browser currently has no grant that could bypass those future checks. Manual trusted SQL fixture inserts are possible while the canteen is Closed.
 
@@ -177,6 +182,8 @@ rollback;
 An empty result is expected if that Student has no orders. The local test Auth fixtures are never applied to a hosted Supabase database.
 
 ## Run local verification
+
+The runner now applies all local migrations in filename order. It also tests the new RPC through authenticated fixture identities, 40 distinct Student requests, 40 calls sharing two request IDs, and controlled overlapping setting/price/availability/category/role mutations. No existing database or hosted project is used. Phase 7 details and final results are in `../canteen-management-docs/docs/06-checkout-orders.md`.
 
 The test runner uses the existing Node installation and PostgreSQL binaries. On this Windows machine, the default binary directory is `C:/Program Files/PostgreSQL/18/bin`.
 

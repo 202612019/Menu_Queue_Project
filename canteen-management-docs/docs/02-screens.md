@@ -88,6 +88,8 @@ Implemented Phase 6 scope: the approved existing homepage keeps its `/#menu` sec
 
 ## Screen 3: Cart and Checkout (`/cart` and `/checkout`)
 
+Phase 7 keeps the existing modal cart and adds protected `/checkout`, `/my-orders` and `/orders/:orderId` locally. A dedicated `/cart` route remains a later interface choice. The submitted selection is frozen during uncertain recovery, with quantities capped at 20 per food and 50 total. Current prices require explicit review; only a confirmed receipt clears submitted quantities. See `06-checkout-orders.md`. Student cancellation and realtime queue/ETA interfaces are outside this phase, and hosted ordering is not yet enabled by this local implementation.
+
 **Users:** Students.  
 **Purpose:** Review selected items and submit an online order.
 

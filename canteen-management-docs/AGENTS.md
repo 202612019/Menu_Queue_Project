@@ -11,6 +11,7 @@ Build a responsive college canteen web application. Students browse the menu, pl
 - `docs/03-flows-rules.md` — order flows, statuses, queue/token rules, access rules, and test checklist.
 - `docs/04-authentication.md` — approved basic authentication implementation, security boundaries, and verification results.
 - `docs/05-live-menu.md` — approved Phase 6 public catalogue integration, field mapping, cart refresh rules, and verification results.
+- `docs/06-checkout-orders.md` — approved local Phase 7 RPC checkout, idempotency, order history, limits, tests and hosted-approval boundary.
 
 These documents are the product requirements. If implementation appears to conflict with them, explain the conflict and ask before changing the requirement.
 
@@ -32,6 +33,10 @@ Subsequent phase approvals authorize the existing homepage, Supabase connection 
 Phase 6 approval authorizes live public menu reads through the existing singleton client, including unavailable items under active categories. Preserve the homepage design and mounted App/cart. Keep application files JSX/JavaScript checked by TypeScript. Keep saved cart prices and flag catalogue price changes; prevent additions/increases for unavailable or hidden items and while reads are pending or failed. Preserve authentication, migrations, seed data, RLS, and hosted settings. Do not deploy. The earlier demo-data rule applies to fixtures and illustrative seed data; the production homepage now reads Supabase.
 
 ## Design rules
+
+Phase 7 approval authorizes local Student checkout/order-history JSX, an additive RPC migration, private idempotency storage and isolated database/frontend tests. Server rules: Asia/Kolkata midnight business date, explicit price review, maximum 20 units per item and 50 total, pay at collection, online orders start Placed and await staff acceptance. Preserve existing authentication, applied migrations and RLS. Do not apply SQL to hosted Supabase, change hosted settings, deploy, or perform live order tests without further approval. Student cancellation and payment gateways remain outside Phase 7.
+
+The post-review follow-up authorizes local privilege/idempotency regression coverage and a prepared read-only hosted preflight checklist. `supabase/hosted-preflight.md` is not authorization to connect to the hosted project. Leave the reviewed migration unchanged unless a genuine security defect is found. Order rate/active-order limits remain undecided: report options and do not implement them without a business decision.
 
 - Modern, professional college-canteen style.
 - Light neutral background, restrained green accent, warm food imagery, readable typography.

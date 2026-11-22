@@ -66,7 +66,7 @@ export const homeContent = {
     total: 'Total',
     totalLabel: 'Cart total',
     unit: 'each',
-    demoNotice: 'Your selections reset when you refresh the page. Saved prices are provisional; ordering is not available yet.',
+    demoNotice: 'Your selections reset when you refresh the page. Review current prices at checkout. Pay at collection.',
     priceChanged: 'Price changed. Saved price:',
     currentPrice: 'Current menu price:',
     unavailable: 'This item is now out of stock. You can decrease its quantity or remove it.',

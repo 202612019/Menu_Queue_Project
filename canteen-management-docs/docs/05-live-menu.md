@@ -1,5 +1,7 @@
 # Phase 6 — Live menu integration
 
+The Phase 6 implementation and verification below are historical. Phase 7 adds local checkout/history and quantity limits, documented in `06-checkout-orders.md`; its additive migration is not yet applied to hosted Supabase. Saved cart prices still never silently change on catalogue refresh. Current server prices are separately reviewed at checkout.
+
 The user approved this implementation after inspection. Application files remain JSX/JavaScript, checked by TypeScript. Existing homepage structure, responsive grid, hero, header/footer, authentication, and mounted App/cart are preserved. This phase introduces no orders, checkout, database writes, hosted configuration changes, or deployment.
 
 ## Data and mapping

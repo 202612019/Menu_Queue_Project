@@ -5,8 +5,8 @@ import { HeroSection } from '../components/HeroSection'
 import { SearchIcon } from '../components/Icons'
 import { homeContent } from '../content/home'
 
-/** @param {{onAdd: (item: import('../content/foodItems').FoodItem) => void, menu: ReturnType<typeof import('../hooks/useMenu').useMenu>}} props */
-export function HomePage({ onAdd, menu }) {
+/** @param {{onAdd: (item: import('../content/foodItems').FoodItem) => void, menu: ReturnType<typeof import('../hooks/useMenu').useMenu>, canAddItem: (id: string) => boolean}} props */
+export function HomePage({ onAdd, menu, canAddItem }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -61,7 +61,7 @@ export function HomePage({ onAdd, menu }) {
           <p>{menu.error}</p>
           <button type="button" onClick={menu.refresh} className="button-primary mt-4">{homeContent.menu.retry}</button>
         </div>}
-        {menu.data && <FoodGrid items={visibleItems} onAdd={onAdd} onClear={clearFilters} canAdd={menu.ready}
+        {menu.data && <FoodGrid items={visibleItems} onAdd={onAdd} onClear={clearFilters} canAdd={menu.ready} canAddItem={canAddItem}
           emptyTitle={foodItems.length === 0 ? homeContent.menu.emptyCatalogue : searchQuery.trim() ? homeContent.menu.emptyTitle : homeContent.menu.emptyCategory}
           emptyDescription={searchQuery.trim() ? homeContent.menu.emptyDescription : homeContent.menu.emptyHint}
           showClear={activeCategory !== 'All' || Boolean(searchQuery.trim())} />}

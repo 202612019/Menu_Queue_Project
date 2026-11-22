@@ -2,6 +2,8 @@
 
 College Canteen is a college canteen menu and queue management project. The app includes the student homepage, a live Supabase food menu, an interactive cart, and basic Supabase email/password authentication. React components use JavaScript `.jsx` files and data uses `.js` files. The existing TypeScript checker checks JavaScript through `allowJs` and `checkJs`. The homepage reads active categories and all their foods, including out-of-stock items, through the existing public Supabase client.
 
+**Phase 7 checkout and order history are implemented locally. The new database migration has not been applied to hosted Supabase, and live ordering has not been tested. Do not apply it or perform live order tests without separate approval.** Existing hosted menu/auth integration is unchanged.
+
 ## Run the project
 
 Open a terminal in `D:\My Folder\Menu_Queue_Project` and use Node.js 22.12 or later. The setup was developed with Node.js 24.14.0.
@@ -66,7 +68,7 @@ The homepage uses a locally bundled DM Sans font and the catalogue's illustrativ
 
 The cart lives in the mounted App's React state and resets on a full page refresh. It survives search, filters, catalogue refreshes, and client-side navigation. Quantity cannot decrease below one. Its badge counts all units. Catalogue refresh never silently changes a saved cart price: a changed price is shown beside the saved price. Unavailable/hidden items stay in the cart with a warning and can be decreased or removed, but cannot be added or increased. While a menu read is pending or failed, additions/increases pause; existing quantities and totals remain intact.
 
-Order submission, tracking, queue management, staff provisioning, dashboards, and deployment remain future work. Online payments are excluded from the MVP. Basic authentication uses Supabase Auth and React Router. Staff roles are assigned through the existing trusted administrator process.
+Local Phase 7 adds `/checkout`, `/my-orders` and `/orders/:orderId`. Checkout uses server-validated PostgreSQL RPCs, current-price review, 20-per-item/50-total limits and user-bound idempotency/recovery. Pending requests survive a tab reload without automatically resubmitting. Only confirmed success clears submitted quantities. Hosted enablement/live verification remain pending approval. Staff acceptance, kitchen actions, realtime queue tracking, cancellation, staff provisioning, dashboards and deployment remain future work. Online payments are excluded. Staff roles are assigned through the existing trusted administrator process.
 
 The existing Git repository is connected through `origin` to `https://github.com/202612019/Menu_Queue_Project.git`. Inspect the connection with `git remote -v` and local changes with `git status --short`.
 
@@ -101,7 +103,7 @@ Adding the same dish updates its quantity instead of creating a duplicate line. 
 
 Prices are stored in integer paise. A ₹45 dish stores `4500`, and the cart adds `pricePaise * quantity`. `formatPrice()` converts the final amount to rupee text for display. Counts and totals are calculated from cart lines rather than stored separately.
 
-The database stores decimal rupees. `menuModel.js` parses each database price once into integer paise without multiplying a binary fraction. `useMenu` keeps one catalogue in App, refetches on returning to the homepage, window focus, or tab visibility, and exposes Refresh menu and Retry. It cancels superseded requests and ignores late responses. A stalled read becomes a retryable error after 15 seconds. Search still matches trimmed, case-insensitive food names; category matching now uses database IDs. No realtime subscription or checkout is implemented. A future order endpoint must revalidate prices and availability on the server.
+The database stores decimal rupees. `menuModel.js` parses each database price once into integer paise without multiplying a binary fraction. `useMenu` keeps one catalogue in App, refetches on returning to the homepage, window focus, or tab visibility, and exposes Refresh menu and Retry. It also stays active in checkout or an open cart. A stalled read becomes a retryable error after 15 seconds. Search still matches trimmed, case-insensitive food names; category matching uses database IDs. No realtime subscription is added. The local Phase 7 RPC revalidates current database prices, availability and active membership before creating an order.
 
 The JSDoc comments describe props for the existing checker while keeping components as JavaScript. CartPanel uses `useRef` to reach the native dialog and `useEffect` to synchronize its open/closed state with React. The browser handles modal background interaction and restores focus when the panel closes.
 
@@ -176,3 +178,5 @@ node supabase/tests/run-local.mjs
 See [authentication implementation and verification](canteen-management-docs/docs/04-authentication.md) for the file map, security boundaries, and recorded results.
 
 See [Phase 6 live-menu implementation and verification](canteen-management-docs/docs/05-live-menu.md) for the field mapping, cart rules, tests, and browser limitations. The development-only `/supabase-test` diagnostic still intentionally lists only the seven available foods; the homepage lists all eight.
+
+See [Phase 7 checkout implementation and local verification](canteen-management-docs/docs/06-checkout-orders.md) for the RPC/migration design, request recovery, ownership controls and test results. Run the isolated database suite with `node supabase/tests/run-local.mjs`; it changes only its own temporary local cluster. `npm.cmd run dev` starts the frontend, but does not apply a migration or enable hosted ordering.

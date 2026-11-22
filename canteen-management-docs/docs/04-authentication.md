@@ -1,5 +1,7 @@
 # Basic authentication implementation
 
+Phase 7 extends the protected routes with local checkout and order history. The only authentication-routing addition is an allow-listed `/checkout` return destination after ordinary login. SDK settings, AuthProvider, email callbacks, password recovery and role assignment are unchanged. Registration/email-confirmation full reloads still reset the in-memory browsing cart; pending checkout metadata is separate and user/tab-bound. See `06-checkout-orders.md` for the new local scope and tests.
+
 The user approved basic authentication on 20 November 2026. This document supplements the original product requirements and records the implemented scope. Application components remain JSX and JavaScript, checked by the existing TypeScript configuration.
 
 ## Scope and routes

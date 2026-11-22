@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
 import { authContent } from '../content/auth'
 import { homeContent } from '../content/home'
+import { orderContent } from '../content/orders'
 import { CartIcon, CloseIcon, MenuIcon, SearchIcon } from './Icons'
 
 /** @param {{cartCount: number, onOpenCart: () => void}} props */
@@ -17,10 +18,11 @@ export function SiteHeader({ cartCount, onOpenCart }) {
           <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-forest text-xl font-bold text-white">C</span>
           <span className="max-w-21 text-sm font-bold leading-tight sm:max-w-none sm:text-lg">{homeContent.title}</span>
         </Link>
-        <nav aria-label={homeContent.navigationLabel} className="hidden items-center gap-8 text-sm font-medium md:flex">
+        <nav aria-label={homeContent.navigationLabel} className="hidden items-center gap-8 text-sm font-medium lg:flex">
           {homeContent.navigation.map((link) => (
             <Link key={link.href} to={`/${link.href}`} className="flex min-h-11 items-center rounded-md text-stone-600 hover:text-forest">{link.label}</Link>
           ))}
+          {auth.user && <Link to="/my-orders" className="flex min-h-11 items-center rounded-md text-stone-600 hover:text-forest">{orderContent.myOrders}</Link>}
         </nav>
         <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <Link to="/#menu-search" aria-label={homeContent.searchLink} className="flex size-11 items-center justify-center rounded-full text-forest hover:bg-stone-200"><SearchIcon /></Link>
@@ -36,18 +38,19 @@ export function SiteHeader({ cartCount, onOpenCart }) {
             aria-label={menuOpen ? homeContent.closeNavigation : homeContent.openNavigation}
             aria-expanded={menuOpen}
             aria-controls="mobile-navigation"
-            className="flex size-11 items-center justify-center rounded-full text-forest hover:bg-stone-200 md:hidden"
+            className="flex size-11 items-center justify-center rounded-full text-forest hover:bg-stone-200 lg:hidden"
           >
             {menuOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
         </div>
       </div>
       {menuOpen && (
-        <nav id="mobile-navigation" aria-label={homeContent.mobileNavigationLabel} className="page-container border-t border-stone-200 py-3 md:hidden">
+        <nav id="mobile-navigation" aria-label={homeContent.mobileNavigationLabel} className="page-container border-t border-stone-200 py-3 lg:hidden">
           {homeContent.navigation.map((link) => (
             <Link key={link.href} to={`/${link.href}`} onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center rounded-md text-base font-medium text-forest">{link.label}</Link>
           ))}
           <Link to={auth.user ? '/account' : '/login'} onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center rounded-md text-base font-medium text-forest">{auth.user ? authContent.account : authContent.login}</Link>
+          {auth.user && <Link to="/my-orders" onClick={()=>setMenuOpen(false)} className="flex min-h-12 items-center rounded-md text-base font-medium text-forest">{orderContent.myOrders}</Link>}
         </nav>
       )}
     </header>

@@ -1,4 +1,4 @@
-import { Link, Navigate } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { useAuth } from './AuthProvider'
 import { authContent as text } from '../content/auth'
 import { AuthLayout, AuthMessage } from '../components/AuthLayout'
@@ -6,6 +6,7 @@ import { AuthLayout, AuthMessage } from '../components/AuthLayout'
 /** @param {{ children: import('react').ReactNode, roles?: import('./authService').AppRole[] }} props */
 export function RequireAuth({ children, roles }) {
   const auth = useAuth()
+  const location = useLocation()
   if (auth.initializing) return <AuthLayout title={text.loading}><AuthMessage message={text.loading} /></AuthLayout>
   if (auth.sessionError) return (
     <AuthLayout title={text.login}>
@@ -13,7 +14,7 @@ export function RequireAuth({ children, roles }) {
       <button className="button-primary mt-4" onClick={auth.retrySession}>{text.retry}</button>
     </AuthLayout>
   )
-  if (!auth.user) return <Navigate to="/login" replace />
+  if (!auth.user) return <Navigate to="/login" replace state={location.pathname==='/checkout'?{returnTo:'/checkout'}:null} />
   if (auth.recovery) return <Navigate to="/reset-password" replace />
   if (auth.profileLoading) return <AuthLayout title={text.loadingProfile}><AuthMessage message={text.loadingProfile} /></AuthLayout>
   if (auth.profileError || !auth.profile) return (

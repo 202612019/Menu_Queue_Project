@@ -92,6 +92,8 @@ Rules:
 
 ## 7. Menu and pricing rules
 
+Phase 7 implements local Student checkout/order-history and an additive RPC migration as recorded in `06-checkout-orders.md`. Maximum quantities are 20 per item and 50 total. Current prices require explicit Student review and server revalidation. Tokens use the Asia/Kolkata midnight business date. Direct browser order writes remain forbidden. The hosted migration and live order testing still require separate approval; no student cancellation or staff/kitchen actions are included.
+
 Phase 6 implements public browsing and an in-memory cart only. Active categories determine public catalogue visibility even for an administrator; unavailable foods remain visible. Catalogue refresh retains cart quantities and saved prices, flags price changes, and marks hidden/out-of-stock lines. Add/increase actions validate against the latest successfully fetched catalogue and pause while reads are pending/failed. Decrease/removal remain available. No order/checkout logic or realtime catalogue subscription is introduced. Backend checkout revalidation below remains mandatory for its future phase.
 
 - Only available items can be added to a cart or submitted.
@@ -226,12 +228,12 @@ The following details remain unresolved and must not be silently treated as appr
 
 | Detail | Remaining decision |
 |---|---|
-| Business day | Confirm the canteen timezone and the time at which its business day changes. Asia/Kolkata and midnight are possible choices, pending confirmation. |
+| Business day | Resolved for Phase 7: Asia/Kolkata with midnight boundary; the server derives the date at order insertion. |
 | Closed-state walk-in orders | Decide whether staff/admin may create walk-in orders while Closed. Online order creation is already explicitly blocked. |
 | Waiting-time baseline | Choose an approximate per-order preparation time and how to count Placed orders and partially prepared work in estimates. Capacity is fixed at one Preparing order. |
 | First administrator | Choose a secure initial administrator provisioning process, since public registration grants only Student access. |
 | Account onboarding | Existing hosted settings require email confirmation. Basic password recovery is implemented in `04-authentication.md`; completed live email flows require verification. Confirm SMTP delivery and how admin-created staff securely set their passwords. Passwords and privileged credentials must not be exposed. |
-| Checkout price changes | Decide whether a changed price requires a revised-total confirmation before order creation. Backend price revalidation is mandatory. |
+| Checkout price changes | Resolved for Phase 7: changed prices require explicit review of a fresh server-priced summary before creation. Submission revalidates again. |
 | Category archiving | Phase 6 hides archived categories and their items from the public catalogue. Decide whether future admin archiving must first require item reassignment. Historical orders always remain intact. |
 | Sales reporting dates | Decide whether date-filtered sales use collection date or creation date. Only Collected orders contribute to sales in either case. |
 | Uncollected and overnight orders | Define handling of Ready orders left at closing or across the business-day boundary. Their recorded full tokens remain unique and retained. |

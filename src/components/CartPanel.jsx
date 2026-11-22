@@ -4,6 +4,7 @@ import { homeContent } from '../content/home'
 import { formatPrice } from '../utils/currency'
 import { CloseIcon } from './Icons'
 import { MenuImage } from './MenuImage'
+import { orderContent } from '../content/orders'
 
 /**
  * @param {{
@@ -13,12 +14,13 @@ import { MenuImage } from './MenuImage'
  *   totalPaise: number,
  *   catalogue: import('../lib/menuModel').Catalogue|null,
  *   menuReady: boolean,
+ *   locked: boolean,
  *   onClose: () => void,
  *   onChangeQuantity: (id: string, change: number) => void,
  *   onRemove: (id: string) => void
  * }} props
  */
-export function CartPanel({ isOpen, items, itemCount, totalPaise, catalogue, menuReady, onClose, onChangeQuantity, onRemove }) {
+export function CartPanel({ isOpen, items, itemCount, totalPaise, catalogue, menuReady, locked, onClose, onChangeQuantity, onRemove }) {
   const dialogRef = useRef(/** @type {HTMLDialogElement | null} */ (null))
   const [pendingRemoval, setPendingRemoval] = useState(/** @type {string | null} */ (null))
 
@@ -46,6 +48,7 @@ export function CartPanel({ isOpen, items, itemCount, totalPaise, catalogue, men
         <button type="button" autoFocus onClick={handleClose} aria-label={homeContent.cart.close} className="flex size-11 shrink-0 items-center justify-center rounded-full border border-stone-300 hover:bg-stone-100"><CloseIcon /></button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+        {locked && <p role="status" className="mb-5 text-sm text-stone-600">{orderContent.locked}</p>}
         {items.length > 0 && !menuReady && <p role="status" className="mb-5 text-sm text-stone-600">{homeContent.cart.menuPending}</p>}
         {items.length === 0 ? (
           <div className="py-16 text-center">
@@ -74,22 +77,22 @@ export function CartPanel({ isOpen, items, itemCount, totalPaise, catalogue, men
                   <div role="group" aria-label={`${homeContent.cart.quantity}, ${item.name}`} className="flex items-center rounded-full border border-stone-300">
                     <button
                       type="button"
-                      disabled={quantity === 1}
+                      disabled={locked || quantity === 1}
                       onClick={() => onChangeQuantity(item.id, -1)}
                       aria-label={`${homeContent.cart.decrease} ${item.name}`}
                       className="size-11 rounded-full text-xl hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-300"
                     >−</button>
                     <output aria-label={`${item.name} ${homeContent.cart.quantity.toLowerCase()}`} className="min-w-8 text-center text-sm font-semibold">{quantity}</output>
-                    <button type="button" disabled={!menuReady || !current?.available} onClick={() => onChangeQuantity(item.id, 1)} aria-label={`${homeContent.cart.increase} ${item.name}`} className="size-11 rounded-full text-xl hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-300">+</button>
+                    <button type="button" disabled={locked || quantity>=20 || itemCount>=50 || !menuReady || !current?.available} onClick={() => onChangeQuantity(item.id, 1)} aria-label={`${homeContent.cart.increase} ${item.name}`} className="size-11 rounded-full text-xl hover:bg-stone-100 disabled:cursor-not-allowed disabled:text-stone-300">+</button>
                   </div>
-                  <button type="button" onClick={() => setPendingRemoval(item.id)} aria-label={`${homeContent.cart.remove} ${item.name}`} className="min-h-11 rounded-md px-2 text-sm font-medium text-stone-600 underline underline-offset-4 hover:text-forest">{homeContent.cart.remove}</button>
+                  <button type="button" disabled={locked} onClick={() => setPendingRemoval(item.id)} aria-label={`${homeContent.cart.remove} ${item.name}`} className="min-h-11 rounded-md px-2 text-sm font-medium text-stone-600 underline underline-offset-4 hover:text-forest disabled:opacity-40">{homeContent.cart.remove}</button>
                 </div>
                 {pendingRemoval === item.id && (
                   <div className="mt-4 rounded-2xl bg-stone-100 p-4">
                     <p className="text-sm font-medium">{homeContent.cart.confirmRemove}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <button type="button" onClick={() => setPendingRemoval(null)} className="min-h-11 rounded-full border border-stone-300 bg-white px-4 text-sm">{homeContent.cart.keep}</button>
-                      <button type="button" onClick={() => { onRemove(item.id); setPendingRemoval(null) }} className="min-h-11 rounded-full bg-forest px-4 text-sm font-medium text-white hover:bg-forest-dark">{homeContent.cart.removeConfirm}</button>
+                      <button type="button" disabled={locked} onClick={() => { onRemove(item.id); setPendingRemoval(null) }} className="min-h-11 rounded-full bg-forest px-4 text-sm font-medium text-white hover:bg-forest-dark disabled:opacity-40">{homeContent.cart.removeConfirm}</button>
                     </div>
                   </div>
                 )}
@@ -104,6 +107,8 @@ export function CartPanel({ isOpen, items, itemCount, totalPaise, catalogue, men
           <output aria-label={homeContent.cart.totalLabel} aria-live="polite">{formatPrice(totalPaise)}</output>
         </div>
         <p id="cart-demo-notice" className="mt-3 text-sm leading-relaxed text-stone-500">{homeContent.cart.demoNotice}</p>
+        <p className="mt-2 text-xs text-stone-500">{orderContent.limits}</p>
+        {(items.length>0 || locked) && <Link to="/checkout" onClick={handleClose} className="button-primary mt-4 w-full text-center">{orderContent.continue}</Link>}
       </div>
     </dialog>
   )
