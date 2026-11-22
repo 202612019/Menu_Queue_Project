@@ -1,16 +1,16 @@
 import { homeContent } from '../content/home'
 import { formatPrice } from '../utils/currency'
+import { MenuImage } from './MenuImage'
 
-/** @param {{item: import('../content/foodItems').FoodItem, onAdd: (item: import('../content/foodItems').FoodItem) => void}} props */
-export function FoodCard({ item, onAdd }) {
+/** @param {{item: import('../content/foodItems').FoodItem, onAdd: (item: import('../content/foodItems').FoodItem) => void, canAdd: boolean}} props */
+export function FoodCard({ item, onAdd, canAdd }) {
   return (
     <article aria-labelledby={`food-${item.id}`} className="flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white">
-      <img
-        src={`${import.meta.env.BASE_URL}${item.image}`}
+      <MenuImage
+        src={item.image}
         alt={item.imageAlt}
-        width="800"
-        height="600"
-        loading="lazy"
+        width={800}
+        height={600}
         className={`aspect-[4/3] w-full bg-stone-100 object-cover ${item.available ? '' : 'opacity-60'}`}
       />
       <div className="flex flex-1 flex-col p-5">
@@ -26,7 +26,7 @@ export function FoodCard({ item, onAdd }) {
           <p className="text-xl font-semibold text-forest">{formatPrice(item.pricePaise)}</p>
           <button
             type="button"
-            disabled={!item.available}
+            disabled={!canAdd || !item.available}
             onClick={() => onAdd(item)}
             aria-label={`${homeContent.menu.add}, ${item.name}`}
             className="min-h-11 rounded-full border border-forest px-4 py-2 text-sm font-semibold text-forest transition-colors hover:bg-forest hover:text-white disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-500"

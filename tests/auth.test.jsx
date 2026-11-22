@@ -16,6 +16,10 @@ const fake = vi.hoisted(() => ({
 
 vi.mock('../src/lib/supabase', () => ({ supabase: { auth: fake.auth, from: fake.from }, supabaseConfigurationError: '' }))
 vi.mock('../src/auth/authLinks', () => ({ initialAuthLink: fake.link, reloadAuthPage: fake.reload }))
+vi.mock('../src/hooks/useMenu', async () => {
+  const { catalogue } = await import('./fixtures/menu')
+  return { useMenu: () => ({ data: catalogue, loading: false, error: '', ready: true, refresh: vi.fn() }) }
+})
 
 import { App } from '../src/app/App'
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider'

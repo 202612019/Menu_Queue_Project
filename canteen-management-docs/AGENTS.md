@@ -10,6 +10,7 @@ Build a responsive college canteen web application. Students browse the menu, pl
 - `docs/02-screens.md` — routes, screen layouts, interactions, responsive behaviour, empty/error states.
 - `docs/03-flows-rules.md` — order flows, statuses, queue/token rules, access rules, and test checklist.
 - `docs/04-authentication.md` — approved basic authentication implementation, security boundaries, and verification results.
+- `docs/05-live-menu.md` — approved Phase 6 public catalogue integration, field mapping, cart refresh rules, and verification results.
 
 These documents are the product requirements. If implementation appears to conflict with them, explain the conflict and ask before changing the requirement.
 
@@ -27,6 +28,8 @@ Before adding packages or services, explain why they are needed. Prefer the simp
 Architecture approval and the approved product decisions authorize the current documentation update. Application development requires the user's next explicit approval after reviewing these updated documents. Remaining decisions are tracked in `docs/03-flows-rules.md`, section 12.
 
 Subsequent phase approvals authorize the existing homepage, Supabase connection test, and basic authentication implementation approved on 20 November 2026. Authentication uses JSX, the existing Student-profile trigger, and existing RLS. Preserve the stable App/cart during navigation. Do not deploy or change hosted Supabase settings without the user's approval. This does not authorize order placement or staff-provisioning interfaces.
+
+Phase 6 approval authorizes live public menu reads through the existing singleton client, including unavailable items under active categories. Preserve the homepage design and mounted App/cart. Keep application files JSX/JavaScript checked by TypeScript. Keep saved cart prices and flag catalogue price changes; prevent additions/increases for unavailable or hidden items and while reads are pending or failed. Preserve authentication, migrations, seed data, RLS, and hosted settings. Do not deploy. The earlier demo-data rule applies to fixtures and illustrative seed data; the production homepage now reads Supabase.
 
 ## Design rules
 

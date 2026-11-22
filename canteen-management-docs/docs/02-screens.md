@@ -2,6 +2,8 @@
 
 This document defines the MVP screens, their routes, users, contents, interactions, responsive behaviour, and empty/error states. Build the screens as described here. Do not invent extra product features without updating the brief first.
 
+Implemented Phase 6 scope: the approved existing homepage keeps its `/#menu` section and modal cart rather than adding the future standalone menu/cart/checkout screens. It reads active categories and all their foods from Supabase, uses name search and category-ID filters, and leaves out-of-stock cards visible with disabled Add buttons. Loading, error/retry, empty-catalogue, empty-category, and no-search-results states are distinct. See `05-live-menu.md`; the full MVP screen descriptions below remain the later target.
+
 ## Shared interface rules
 
 - Use a consistent header with the canteen name/logo and clear navigation.

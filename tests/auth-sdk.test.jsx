@@ -3,6 +3,11 @@ import { BrowserRouter } from 'react-router'
 import { render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 
+vi.mock('../src/hooks/useMenu', async () => {
+  const { catalogue } = await import('./fixtures/menu')
+  return { useMenu: () => ({ data: catalogue, loading: false, error: '', ready: true, refresh: vi.fn() }) }
+})
+
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); window.history.replaceState({}, '', '/') })
 
 it('processes a recovery URL through the actual Supabase SDK before permitting a reset', async () => {

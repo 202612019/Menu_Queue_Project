@@ -1,6 +1,6 @@
 # Menu_Queue_Project
 
-College Canteen is a college canteen menu and queue management project. The app includes the student homepage, searchable demo food menu, interactive cart, and basic Supabase email/password authentication. React components use JavaScript `.jsx` files and data uses `.js` files. The existing TypeScript checker checks JavaScript through `allowJs` and `checkJs`. The homepage still uses its existing demo data; a separate development page tests public Supabase menu reads.
+College Canteen is a college canteen menu and queue management project. The app includes the student homepage, a live Supabase food menu, an interactive cart, and basic Supabase email/password authentication. React components use JavaScript `.jsx` files and data uses `.js` files. The existing TypeScript checker checks JavaScript through `allowJs` and `checkJs`. The homepage reads active categories and all their foods, including out-of-stock items, through the existing public Supabase client.
 
 ## Run the project
 
@@ -47,7 +47,10 @@ npm.cmd run preview
 | `src/components/Icons.jsx` | Shared cart, search, menu, and close icons. |
 | `src/pages/HomePage.jsx` | Owns search/category state and assembles hero, menu, and about sections. |
 | `src/content/home.js` | Centralized interface text for future localization, moved from the Phase 2 `home.ts` file. |
-| `src/content/foodItems.js` | Eight labelled demo dishes and the categories derived from them. |
+| `src/content/foodItems.js` | Retained Phase 3 demo fixtures and shared JSDoc types; no longer the homepage's data source. |
+| `src/lib/menu.js`, `src/lib/menuModel.js` | Read-only menu queries, active-category mapping, and exact decimal rupees-to-paise conversion. |
+| `src/hooks/useMenu.js` | Shared catalogue loading, cancellation, timeout, refresh, and retry state owned by App. |
+| `src/components/MenuImage.jsx`, `src/utils/menuImage.js` | Image paths and a neutral fallback for missing/broken food photos. |
 | `src/utils/currency.js` | Formats integer paise as Indian rupees consistently across cards and cart totals. |
 | `src/styles/index.css` | Tailwind import, theme colors, typography, and base styles. |
 | `public/images/` | Local illustrative food photography served directly by Vite. |
@@ -59,11 +62,11 @@ npm.cmd run preview
 
 Tailwind uses the Vite plugin `@tailwindcss/vite` and `@import "tailwindcss"` in the stylesheet, following the supported Vite installation method. [Tailwind documentation](https://tailwindcss.com/docs/installation/using-vite)
 
-The homepage uses a locally bundled DM Sans font and local illustrative food photos. Home, Menu, and About navigate to sections within the same page. The food menu uses sample data, prices, and availability. Veg Burger is deliberately out of stock so its disabled action can be demonstrated.
+The homepage uses a locally bundled DM Sans font and the catalogue's illustrative food photos. Home, Menu, and About navigate to sections within the same page. The menu's names, categories, descriptions, prices, and availability now come from hosted Supabase. The initial seed contains five categories and eight dishes; Veg Burger is out of stock with a disabled Add button.
 
-The cart lives in React state and resets on page refresh. It supports adding available food, increasing/decreasing quantities, and confirmed removal. Quantity cannot decrease below one. Its badge counts all units, including repeated additions of the same dish. Selecting a category or searching preserves the cart.
+The cart lives in the mounted App's React state and resets on a full page refresh. It survives search, filters, catalogue refreshes, and client-side navigation. Quantity cannot decrease below one. Its badge counts all units. Catalogue refresh never silently changes a saved cart price: a changed price is shown beside the saved price. Unavailable/hidden items stay in the cart with a warning and can be decreased or removed, but cannot be added or increased. While a menu read is pending or failed, additions/increases pause; existing quantities and totals remain intact.
 
-Homepage database integration, order submission, tracking, queue management, staff provisioning, dashboards, and deployment remain future work. Online payments are excluded from the MVP. Basic authentication uses Supabase Auth and React Router. Staff roles are assigned through the existing trusted administrator process.
+Order submission, tracking, queue management, staff provisioning, dashboards, and deployment remain future work. Online payments are excluded from the MVP. Basic authentication uses Supabase Auth and React Router. Staff roles are assigned through the existing trusted administrator process.
 
 The existing Git repository is connected through `origin` to `https://github.com/202612019/Menu_Queue_Project.git`. Inspect the connection with `git remote -v` and local changes with `git status --short`.
 
@@ -97,6 +100,8 @@ Category filtering uses `filter()` to keep an item when the category matches or 
 Adding the same dish updates its quantity instead of creating a duplicate line. Functional setters such as `setCartItems(previous => ...)` read the most recent cart during rapid clicks. `map()` updates a matching line, `filter()` removes a line, and `reduce()` calculates the badge count and total. Array changes create new arrays so React can recognize the update.
 
 Prices are stored in integer paise. A ₹45 dish stores `4500`, and the cart adds `pricePaise * quantity`. `formatPrice()` converts the final amount to rupee text for display. Counts and totals are calculated from cart lines rather than stored separately.
+
+The database stores decimal rupees. `menuModel.js` parses each database price once into integer paise without multiplying a binary fraction. `useMenu` keeps one catalogue in App, refetches on returning to the homepage, window focus, or tab visibility, and exposes Refresh menu and Retry. It cancels superseded requests and ignores late responses. A stalled read becomes a retryable error after 15 seconds. Search still matches trimmed, case-insensitive food names; category matching now uses database IDs. No realtime subscription or checkout is implemented. A future order endpoint must revalidate prices and availability on the server.
 
 The JSDoc comments describe props for the existing checker while keeping components as JavaScript. CartPanel uses `useRef` to reach the native dialog and `useEffect` to synchronize its open/closed state with React. The browser handles modal background interaction and restores focus when the panel closes.
 
@@ -169,3 +174,5 @@ node supabase/tests/run-local.mjs
 `npm.cmd test` uses Vitest, Testing Library, and JSDOM. It exercises the homepage/cart and authentication behavior without a real browser. One test uses the actual Supabase SDK with simulated HTTP responses to verify recovery URL processing. The PostgreSQL suite uses an isolated local database to test actual RLS and cross-account access. It must not be applied to hosted Supabase.
 
 See [authentication implementation and verification](canteen-management-docs/docs/04-authentication.md) for the file map, security boundaries, and recorded results.
+
+See [Phase 6 live-menu implementation and verification](canteen-management-docs/docs/05-live-menu.md) for the field mapping, cart rules, tests, and browser limitations. The development-only `/supabase-test` diagnostic still intentionally lists only the seven available foods; the homepage lists all eight.

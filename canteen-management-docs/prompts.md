@@ -895,3 +895,36 @@ The user supplied a screenshot of the neutral registration/resend screen and con
 Inspected registration/resend handling and official Supabase documentation. Updated neutral registration/resend wording so it does not promise delivery, and added separate Sign in and Forgot Password links below the form. No frontend account-existence disclosure was introduced. Added a regression for an obfuscated existing-account response without automatic resend or recovery requests. No live emails, authentication requests, hosted settings, database files, or credentials were changed. The user should use password recovery to choose their own password when email sending is available.
 
 Verification: all 43 frontend tests passed. TypeScript checks and the production build passed with the existing non-fatal bundle-size warning. The official Supabase Auth resend handler confirms that an already-confirmed user receives a successful response without another signup email. No live email delivery was tested in this follow-up.
+
+## 22. Phase 6 — Live Menu Integration (inspection first)
+
+The user requested inspection before implementation of `src/content/foodItems.js`, the existing Supabase client/connection test, HomePage, FoodGrid, FoodCard, CategoryFilter, CartPanel, App, the initial migration, and seed SQL. They requested the current architecture, exact field mapping, cart compatibility risks, implementation plan, expected changed files, and testing plan. Requirements included public RLS review, categories and menu relationships, price/quantity arithmetic, search/category filtering, loading/error/empty states, and unavailable-item behavior. No files were to change until approval; JSX, the homepage, mounted cart, authentication, existing client, and database files had to be preserved.
+
+Outcome: inspection was read-only; this log entry is added after the subsequent implementation approval. The report identified UUID cart identities, decimal database rupees versus integer frontend paise, root-relative seed images versus the old BASE_URL concatenation, category-ID filtering, absent global catalogue states, and the need to preserve saved cart prices. Existing public RLS allows active categories and their foods, including unavailable items. A read-only hosted check returned five active categories/eight foods, with Veg Burger unavailable. Proposed one shared catalogue service/hook in App, an adapter, safe shared images, explicit asynchronous states, latest-catalogue Add/increase guards, and regression tests. Authentication, migrations, seed data and policies required no changes.
+
+## 23. Implement approved Phase 6 live menu integration
+
+Approved. Please implement Phase 6 — Live Menu Integration according to your inspection report.
+
+Follow the proposed implementation plan with these additional requirements:
+
+1. Preserve the existing homepage appearance and responsive design.
+2. Keep App mounted and preserve cart state during navigation.
+3. Fetch all active categories and their menu items, including unavailable items.
+4. Show unavailable items with an Out of stock label and disabled Add button.
+5. Convert database prices into integer paise exactly once, handling decimal precision safely.
+6. Handle image URLs correctly, including relative paths, absolute URLs, and missing images.
+7. Do not silently reprice existing cart items when the catalogue refreshes. Flag changed prices instead.
+8. Prevent adding unavailable or hidden items using the latest available catalogue data.
+9. Implement loading, error, retry, empty-catalogue, empty-category, and no-search-results states.
+10. Preserve existing authentication, cart quantity, removal, and navigation functionality.
+
+Security and database restrictions: use the existing Supabase client; do not modify migrations, seed data, RLS policies, or hosted settings; do not expose privileged API keys or introduce a second client.
+
+Testing: test all five categories/eight foods, unavailable Veg Burger, search/category/combined filtering, cart quantities/totals/removal/navigation, catalogue refresh/error recovery, all automated tests, TypeScript checks, and production build. Report browser behavior that could not be verified. Update documentation and prompts log. Do not deploy; keep changes local.
+
+Implementation: added `menu.js`, `menuModel.js`, `useMenu.js`, shared MenuImage/URL handling, and menu tests/fixtures. Connected the existing homepage/grid/cards/category chips and mounted App/cart to live reads. The production menu includes unavailable foods; archived-category membership is explicitly filtered even for admin reads. Database decimals are parsed once into integer paise. Saved cart lines retain prices/quantities and display changed-price/hidden/out-of-stock warnings. Add/increase validate the current catalogue and pause during reads/errors; decrease and confirmed removal remain available. Refresh on homepage entry/focus/visibility and manual refresh/retry use cancellation, stale-response protection, and a 15-second timeout. No new packages, auth-source changes, database changes, emails, hosted settings, Git remote changes, or deployment.
+
+Verification on 22 November 2026: all 71 tests in six files passed, comprising 43 existing regressions and 28 new menu cases. Standalone TypeScript checks and the production build passed; the existing non-fatal bundle warning remains (524.32 kB main JavaScript minified). The first run's price-format assertion was corrected to the unchanged formatter; a long interaction test exceeded Vitest's default five-second timeout under load and now has a focused 15-second allowance. The final complete suite passed. The actual service successfully read all five hosted categories/eight foods through the existing client; all prices and unavailable Veg Burger matched the seed. An initial sandbox network attempt failed and the permitted read-only retry succeeded. Browser inspection stopped when the computer-use tool could not determine Chrome's URL confidently enough for policy enforcement. No more browser input was attempted; real-browser visual/responsive and live cart/refresh/error flows remain unverified. See `docs/05-live-menu.md` for the complete results and remaining checkout limitations.
+
+Local delivery check: the development server started at http://127.0.0.1:5173/. The homepage, transformed feature modules, and Veg Burger image returned HTTP 200 without compilation-error responses. This does not verify browser rendering.

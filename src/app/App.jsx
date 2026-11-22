@@ -12,6 +12,7 @@ import { RequireAuth, RequireRecovery } from '../auth/AuthGuards'
 import { useAuth } from '../auth/AuthProvider'
 import { initialAuthLink } from '../auth/authLinks'
 import { authContent } from '../content/auth'
+import { useMenu } from '../hooks/useMenu'
 
 const ConnectionTestPage = import.meta.env.DEV ? lazy(() => import('../pages/SupabaseConnectionTest')) : null
 
@@ -19,6 +20,7 @@ export function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const auth = useAuth()
+  const menu = useMenu(location.pathname === '/')
   const linkHandled = useRef(false)
   // App is the shared parent of the header, food cards, and cart panel.
   // Updating this state re-renders all three with the same cart information.
@@ -50,12 +52,13 @@ export function App() {
 
   /** @param {import('../content/foodItems').FoodItem} item */
   function addItem(item) {
-    if (!item.available) return
+    const current = menu.data?.items.find(candidate => candidate.id === item.id)
+    if (!menu.ready || !current?.available) return
 
     // The functional update uses the latest cart, even during rapid clicks.
     setCartItems((previous) => {
       const alreadyInCart = previous.some((line) => line.item.id === item.id)
-      if (!alreadyInCart) return [...previous, { item, quantity: 1 }]
+      if (!alreadyInCart) return [...previous, { item: current, quantity: 1 }]
 
       return previous.map((line) => line.item.id === item.id ? { ...line, quantity: line.quantity + 1 } : line)
     })
@@ -63,6 +66,7 @@ export function App() {
 
   /** @param {string} id @param {number} change */
   function changeQuantity(id, change) {
+    if (change > 0 && (!menu.ready || !menu.data?.items.some(item => item.id === id && item.available))) return
     setCartItems((previous) => previous.map((line) => (
       line.item.id === id ? { ...line, quantity: Math.max(1, line.quantity + change) } : line
     )))
@@ -82,7 +86,7 @@ export function App() {
       {auth.logoutWarning && <div className="page-container mt-4"><AuthMessage error message={auth.logoutWarning} /></div>}
       <Suspense fallback={<AuthLayout title={authContent.loading} />}>
         <Routes>
-          <Route path="/" element={<HomePage onAdd={addItem} />} />
+          <Route path="/" element={<HomePage onAdd={addItem} menu={menu} />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -100,6 +104,8 @@ export function App() {
         items={cartItems}
         itemCount={cartCount}
         totalPaise={totalPaise}
+        catalogue={menu.data}
+        menuReady={menu.ready}
         onClose={() => setCartOpen(false)}
         onChangeQuantity={changeQuantity}
         onRemove={removeItem}

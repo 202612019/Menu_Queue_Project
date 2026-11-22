@@ -92,6 +92,8 @@ Rules:
 
 ## 7. Menu and pricing rules
 
+Phase 6 implements public browsing and an in-memory cart only. Active categories determine public catalogue visibility even for an administrator; unavailable foods remain visible. Catalogue refresh retains cart quantities and saved prices, flags price changes, and marks hidden/out-of-stock lines. Add/increase actions validate against the latest successfully fetched catalogue and pause while reads are pending/failed. Decrease/removal remain available. No order/checkout logic or realtime catalogue subscription is introduced. Backend checkout revalidation below remains mandatory for its future phase.
+
 - Only available items can be added to a cart or submitted.
 - Quantity must be a positive whole number.
 - Price must be non-negative.
@@ -230,7 +232,7 @@ The following details remain unresolved and must not be silently treated as appr
 | First administrator | Choose a secure initial administrator provisioning process, since public registration grants only Student access. |
 | Account onboarding | Existing hosted settings require email confirmation. Basic password recovery is implemented in `04-authentication.md`; completed live email flows require verification. Confirm SMTP delivery and how admin-created staff securely set their passwords. Passwords and privileged credentials must not be exposed. |
 | Checkout price changes | Decide whether a changed price requires a revised-total confirmation before order creation. Backend price revalidation is mandatory. |
-| Category archiving | Decide whether active items under an archived category are hidden/disabled or must first be reassigned. Historical orders always remain intact. |
+| Category archiving | Phase 6 hides archived categories and their items from the public catalogue. Decide whether future admin archiving must first require item reassignment. Historical orders always remain intact. |
 | Sales reporting dates | Decide whether date-filtered sales use collection date or creation date. Only Collected orders contribute to sales in either case. |
 | Uncollected and overnight orders | Define handling of Ready orders left at closing or across the business-day boundary. Their recorded full tokens remain unique and retained. |
 | Optional interface details | Confirm order notes, menu-image upload workflow, featured-item selection, and whether operating hours are editable. These are not newly approved features. |

@@ -3,17 +3,19 @@ import { CategoryFilter } from '../components/CategoryFilter'
 import { FoodGrid } from '../components/FoodGrid'
 import { HeroSection } from '../components/HeroSection'
 import { SearchIcon } from '../components/Icons'
-import { categories, foodItems } from '../content/foodItems'
 import { homeContent } from '../content/home'
 
-/** @param {{onAdd: (item: import('../content/foodItems').FoodItem) => void}} props */
-export function HomePage({ onAdd }) {
+/** @param {{onAdd: (item: import('../content/foodItems').FoodItem) => void, menu: ReturnType<typeof import('../hooks/useMenu').useMenu>}} props */
+export function HomePage({ onAdd, menu }) {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Both conditions must match. Filtering creates a new array and leaves demo data intact.
+  const foodItems = menu.data?.items ?? []
+  const categories = [{ id: 'All', name: homeContent.menu.all }, ...(menu.data?.categories ?? [])]
+  // An archived selection returns to All without briefly displaying hidden foods.
+  const activeCategory = categories.some(category => category.id === selectedCategory) ? selectedCategory : 'All'
   const visibleItems = foodItems.filter((item) => {
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory
+    const matchesCategory = activeCategory === 'All' || item.categoryId === activeCategory
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
     return matchesCategory && matchesSearch
   })
@@ -46,12 +48,23 @@ export function HomePage({ onAdd }) {
             />
           </div>
         </div>
-        <div className="mt-7"><CategoryFilter categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} /></div>
+        <div className="mt-7"><CategoryFilter categories={categories} selected={activeCategory} onSelect={setSelectedCategory} /></div>
         <div className="my-5 flex flex-col justify-between gap-2 text-sm text-stone-500 sm:flex-row">
           <p>{homeContent.menu.demoNotice}</p>
-          <p aria-live="polite" aria-atomic="true">{visibleItems.length} {visibleItems.length === 1 ? homeContent.menu.dish : homeContent.menu.dishes}</p>
+          <div className="flex flex-wrap items-center gap-4">
+            {menu.data && <p aria-live="polite" aria-atomic="true">{visibleItems.length} {visibleItems.length === 1 ? homeContent.menu.dish : homeContent.menu.dishes}</p>}
+            <button type="button" disabled={menu.loading} onClick={menu.refresh} className="min-h-11 underline underline-offset-4 disabled:opacity-50">{homeContent.menu.refresh}</button>
+          </div>
         </div>
-        <FoodGrid items={visibleItems} onAdd={onAdd} onClear={clearFilters} />
+        {menu.loading && <p role="status" className="mb-5 rounded-2xl bg-stone-100 p-5">{menu.data ? homeContent.menu.refreshing : homeContent.menu.loading}</p>}
+        {menu.error && <div role="alert" className="mb-5 rounded-2xl border border-stone-200 bg-white p-5">
+          <p>{menu.error}</p>
+          <button type="button" onClick={menu.refresh} className="button-primary mt-4">{homeContent.menu.retry}</button>
+        </div>}
+        {menu.data && <FoodGrid items={visibleItems} onAdd={onAdd} onClear={clearFilters} canAdd={menu.ready}
+          emptyTitle={foodItems.length === 0 ? homeContent.menu.emptyCatalogue : searchQuery.trim() ? homeContent.menu.emptyTitle : homeContent.menu.emptyCategory}
+          emptyDescription={searchQuery.trim() ? homeContent.menu.emptyDescription : homeContent.menu.emptyHint}
+          showClear={activeCategory !== 'All' || Boolean(searchQuery.trim())} />}
       </section>
       <section id="about" aria-labelledby="about-title" className="grid scroll-mt-28 gap-6 rounded-[2rem] bg-[#e8eee3] p-7 sm:p-10 lg:grid-cols-2 lg:gap-16">
         <h2 id="about-title" className="max-w-sm text-3xl font-medium leading-tight tracking-tight sm:text-4xl">{homeContent.aboutTitle}</h2>
